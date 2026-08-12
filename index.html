@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Painel de Portões — Consolidador</title>
+<title>Consolidador Inteligente de Planilhas</title>
 <style>
 @font-face{
   font-family:'Poppins'; font-style:normal; font-weight:400; font-display:swap;
@@ -1514,6 +1514,356 @@ document.getElementById("pivotPagerNext").addEventListener("click", ()=>{
 
 window.addEventListener("resize", ()=>{ if(consolidated.length) renderDashboard(); });
 
+})();
+</script>
+<style>
+/* =========================================================
+   CONSOLIDADOR INTELIGENTE V2
+   A interface anterior permanece no arquivo apenas como base técnica.
+   ========================================================= */
+body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{display:none!important}
+#smartApp{min-height:100vh;background:#f4f6f9;color:#162235;font-family:'Poppins',Arial,sans-serif}
+#smartApp *{box-sizing:border-box}
+.sv-top{background:#fff;border-bottom:1px solid #dfe5ec;position:sticky;top:0;z-index:40}
+.sv-container{width:min(1480px,calc(100% - 32px));margin:0 auto}
+.sv-toprow{min-height:76px;display:flex;align-items:center;gap:20px;justify-content:space-between}
+.sv-brand{display:flex;align-items:center;gap:13px;min-width:0}.sv-brand img{width:92px;height:auto;display:block}.sv-brandline{width:1px;height:34px;background:#dfe5ec}.sv-brand b{font-size:14px;color:#12385b;letter-spacing:.035em}.sv-brand span{display:block;font-size:11px;color:#7b899a;margin-top:2px}
+.sv-tabs{display:flex;gap:4px;background:#f2f5f8;padding:4px;border-radius:10px}.sv-tab{border:0;background:transparent;color:#637185;padding:9px 14px;border-radius:7px;font:600 12px 'Poppins';cursor:pointer}.sv-tab.active{background:#fff;color:#12385b;box-shadow:0 1px 5px #20364d1a}.sv-tab:disabled{opacity:.42;cursor:not-allowed}
+.sv-main{padding:30px 0 48px}.sv-pane{display:none}.sv-pane.active{display:block}.sv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px}.sv-eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:700;color:#7d9a20;margin-bottom:5px}.sv-head h1{font-size:23px;line-height:1.2;color:#102c49;margin:0}.sv-head p{font-size:12.5px;line-height:1.65;color:#69778a;margin:7px 0 0;max-width:820px}
+.sv-btn{border:1px solid #cad3de;background:#fff;color:#24415e;border-radius:8px;padding:9px 13px;font:600 11.5px 'Poppins';cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}.sv-btn:hover{border-color:#7690aa}.sv-btn.primary{background:#173f65;color:#fff;border-color:#173f65}.sv-btn.accent{background:#a8c936;color:#183149;border-color:#a8c936}.sv-btn.danger{color:#a82f3e}.sv-btn:disabled{opacity:.42;cursor:not-allowed}.sv-btn.sm{padding:6px 9px;font-size:10.5px}.sv-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.sv-card{background:#fff;border:1px solid #dfe5ec;border-radius:12px;box-shadow:0 4px 16px #1d38520a}.sv-pad{padding:18px}.sv-drop{border:2px dashed #b9c5d2;border-radius:13px;background:#fbfcfd;padding:28px 20px;text-align:center;cursor:pointer;transition:.15s}.sv-drop.drag{border-color:#6f8f10;background:#f8fbeF}.sv-drop .plus{width:40px;height:40px;border-radius:50%;background:#173f65;color:#fff;display:grid;place-items:center;margin:0 auto 10px;font-size:24px}.sv-drop b{display:block;color:#173f65;font-size:13px}.sv-drop small{display:block;color:#7c8998;font-size:11px;margin-top:4px}
+.sv-source-list{display:grid;gap:10px;margin-top:14px}.sv-source{display:grid;grid-template-columns:minmax(220px,1.1fr) 110px minmax(250px,1.2fr) 42px;gap:14px;align-items:center;padding:12px 14px}.sv-source-name{font-size:12px;font-weight:700;color:#193c5d;overflow:hidden;text-overflow:ellipsis}.sv-source-name small{display:block;color:#8190a1;font-weight:400;margin-top:2px}.sv-badge{display:inline-flex;border-radius:999px;background:#eef3f7;color:#516276;padding:4px 8px;font-size:10px;font-weight:600}.sv-source select,.sv-control select,.sv-control input{width:100%;min-height:38px;border:1px solid #cad4df;border-radius:8px;background:#fff;color:#263a50;padding:8px 10px;font:500 11.5px 'Poppins'}.sv-source label,.sv-control label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.055em;color:#77879a;font-weight:700;margin-bottom:5px}
+.sv-keybox{margin-top:16px;padding:17px}.sv-keygrid{display:grid;grid-template-columns:minmax(240px,1fr) 1.5fr;gap:20px;align-items:start}.sv-notice{border-left:3px solid #a8c936;background:#f7faed;padding:11px 13px;border-radius:5px;color:#4d5d70;font-size:11px;line-height:1.55}.sv-warn{border-left-color:#d58b2a;background:#fff8ee}.sv-error{border-left-color:#c74452;background:#fff2f4}.sv-mappings{margin-top:13px;border-top:1px solid #e4e9ef;padding-top:11px}.sv-maprow{display:grid;grid-template-columns:minmax(200px,1fr) minmax(220px,1fr) 100px;gap:12px;align-items:center;padding:7px 0}.sv-maprow .n{font-size:11px;color:#405267}.sv-confidence{font-size:10px;font-weight:700;text-align:right}.sv-confidence.ok{color:#668811}.sv-confidence.mid{color:#bb721b}.sv-confidence.low{color:#b43646}
+.sv-summary{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:16px}.sv-summary span{font-size:11.5px;color:#69788a}
+.sv-kpis{display:grid;grid-template-columns:repeat(5,minmax(145px,1fr));gap:10px;margin-bottom:14px}.sv-kpi{padding:14px 15px}.sv-kpi label{display:block;color:#7a899a;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.sv-kpi b{display:block;color:#143a5d;font-size:22px;margin-top:4px}.sv-kpi small{display:block;color:#8b98a7;font-size:9.5px;margin-top:2px}
+.sv-toolbar{display:flex;gap:10px;align-items:center;padding:12px;margin-bottom:10px}.sv-toolbar input{flex:1;min-width:180px;border:1px solid #cad4df;border-radius:8px;padding:9px 11px;font:500 11.5px 'Poppins'}.sv-muted{color:#7f8c9c;font-size:10.5px}.sv-tablewrap{overflow:auto;max-height:62vh}.sv-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:10.5px}.sv-table th{position:sticky;top:0;z-index:2;background:#193f63;color:#fff;text-align:left;padding:9px 10px;white-space:nowrap;border-right:1px solid #315574}.sv-table td{padding:8px 10px;border-right:1px solid #e6ebf0;border-bottom:1px solid #e6ebf0;white-space:nowrap;max-width:360px;overflow:hidden;text-overflow:ellipsis;color:#34475b}.sv-table tr:nth-child(even) td{background:#f8fafc}.sv-table td.conflict{background:#fff3df!important;color:#8c5916}.sv-pager{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-top:1px solid #e3e8ee}.sv-pager span{font-size:10.5px;color:#758396}
+.sv-builder{padding:16px;margin-bottom:14px}.sv-buildergrid{display:grid;grid-template-columns:1fr .8fr 1fr 1fr .8fr minmax(180px,1.2fr);gap:10px;align-items:end}.sv-control .hint{font-size:9px;color:#8a97a6;margin-top:4px}.sv-dashboard-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.sv-widgetgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.sv-widget{min-width:0;overflow:hidden}.sv-widgethead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:14px 15px 8px}.sv-widgethead h3{font-size:13px;color:#153a5c;margin:0}.sv-widgethead p{font-size:9.5px;color:#8391a1;margin:3px 0 0}.sv-widgetbody{padding:0 12px 14px;min-height:340px;overflow:auto}.sv-widgetbody svg{display:block;width:100%;min-width:620px;height:auto}.sv-widgetbody .sv-tablewrap{max-height:360px}.sv-empty{padding:42px 20px;text-align:center;color:#8492a2;font-size:12px}.sv-legend{display:flex;flex-wrap:wrap;gap:7px 13px;padding:0 15px 13px}.sv-legend span{font-size:9.5px;color:#667587}.sv-legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px}
+.sv-foot{text-align:center;color:#8995a3;font-size:10px;padding:22px}.sv-hidden{display:none!important}
+@media(max-width:1050px){.sv-buildergrid{grid-template-columns:repeat(3,1fr)}.sv-kpis{grid-template-columns:repeat(3,1fr)}.sv-widgetgrid{grid-template-columns:1fr}.sv-source{grid-template-columns:1fr 100px minmax(220px,1fr) 38px}}
+@media(max-width:720px){.sv-container{width:min(100% - 18px,1480px)}.sv-toprow{align-items:flex-start;flex-direction:column;padding:11px 0}.sv-tabs{width:100%}.sv-tab{flex:1;padding:8px 5px}.sv-head{flex-direction:column}.sv-actions{justify-content:flex-start}.sv-keygrid,.sv-buildergrid{grid-template-columns:1fr}.sv-source{grid-template-columns:1fr}.sv-maprow{grid-template-columns:1fr}.sv-confidence{text-align:left}.sv-kpis{grid-template-columns:repeat(2,1fr)}.sv-summary{align-items:flex-start;flex-direction:column}.sv-widgetbody svg{min-width:560px}}
+</style>
+
+<div id="smartApp">
+  <header class="sv-top">
+    <div class="sv-container sv-toprow">
+      <div class="sv-brand">
+        <img id="svLogo" alt="Sesé">
+        <div class="sv-brandline"></div>
+        <div><b>CONSOLIDADOR INTELIGENTE</b><span>Importação, união por coluna-motor e dashboards configuráveis</span></div>
+      </div>
+      <nav class="sv-tabs">
+        <button class="sv-tab active" data-svtab="import">1 · Importar</button>
+        <button class="sv-tab" data-svtab="data" disabled>2 · Consolidado</button>
+        <button class="sv-tab" data-svtab="dash" disabled>3 · Dashboard</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="sv-main"><div class="sv-container">
+    <section class="sv-pane active" id="svPaneImport">
+      <div class="sv-head">
+        <div><div class="sv-eyebrow">Etapa 1</div><h1>Importar e relacionar planilhas</h1><p>Adicione quantos arquivos forem necessários. Todas as abas com dados serão analisadas. A ferramenta compara nomes, conteúdo, preenchimento e repetição para sugerir a coluna-motor correta.</p></div>
+        <div class="sv-actions"><button class="sv-btn danger" id="svClear" disabled>Limpar tudo</button></div>
+      </div>
+      <div class="sv-card sv-pad">
+        <div class="sv-drop" id="svDrop" tabindex="0">
+          <div class="plus">+</div><b>Adicionar planilhas</b><small>Excel ou CSV · vários arquivos ao mesmo tempo · todas as abas válidas</small>
+        </div>
+        <input class="sv-hidden" type="file" id="svFiles" multiple accept=".xlsx,.xls,.xlsm,.csv">
+        <div class="sv-source-list" id="svSources"></div>
+      </div>
+
+      <div class="sv-card sv-keybox sv-hidden" id="svKeyBox">
+        <div class="sv-keygrid">
+          <div class="sv-control"><label>Coluna-motor da consolidação</label><select id="svKeySelect"></select><div class="hint">É a chave usada para reconhecer que duas linhas de planilhas diferentes representam o mesmo registro.</div></div>
+          <div class="sv-notice" id="svKeyNotice">A sugestão automática prioriza colunas preenchidas, com valores únicos e com dados coincidentes entre as planilhas. Confirme o mapeamento antes de consolidar.</div>
+        </div>
+        <div class="sv-mappings" id="svMappings"></div>
+      </div>
+
+      <div class="sv-summary">
+        <span id="svImportSummary">Nenhuma planilha importada.</span>
+        <button class="sv-btn primary" id="svConsolidate" disabled>Consolidar planilhas →</button>
+      </div>
+    </section>
+
+    <section class="sv-pane" id="svPaneData">
+      <div class="sv-head">
+        <div><div class="sv-eyebrow">Etapa 2</div><h1>Base consolidada</h1><p>Uma linha por valor da coluna-motor. Colunas equivalentes aparecem uma única vez; informações complementares são acrescentadas sem apagar valores divergentes.</p></div>
+        <div class="sv-actions"><button class="sv-btn" id="svCsv">Exportar CSV</button><button class="sv-btn" id="svXlsx">Exportar Excel</button><button class="sv-btn" id="svTableJpeg">Tabela em JPEG</button><button class="sv-btn accent" id="svGoDash">Criar dashboard →</button></div>
+      </div>
+      <div class="sv-kpis" id="svKpis"></div>
+      <div class="sv-card">
+        <div class="sv-toolbar"><input type="search" id="svSearch" placeholder="Pesquisar em todas as colunas..."><span class="sv-muted" id="svRowCount"></span></div>
+        <div class="sv-tablewrap"><table class="sv-table"><thead><tr id="svDataHead"></tr></thead><tbody id="svDataBody"></tbody></table></div>
+        <div class="sv-pager"><span id="svPageInfo"></span><div class="sv-actions"><button class="sv-btn sm" id="svPrev">← Anterior</button><button class="sv-btn sm" id="svNext">Próxima →</button></div></div>
+      </div>
+    </section>
+
+    <section class="sv-pane" id="svPaneDash">
+      <div class="sv-head">
+        <div><div class="sv-eyebrow">Etapa 3</div><h1>Dashboard configurável</h1><p>Escolha o tipo de visual, as colunas e o cálculo. Você pode combinar gráficos e tabelas no mesmo painel e exportar cada item ou o painel completo em JPEG.</p></div>
+      </div>
+      <div class="sv-card sv-builder">
+        <div class="sv-buildergrid">
+          <div class="sv-control"><label>Visual</label><select id="svChartType"><option value="bar">Gráfico de barras</option><option value="line">Gráfico de linhas</option><option value="pie">Gráfico de pizza</option><option value="table">Tabela-resumo</option></select></div>
+          <div class="sv-control"><label>Cálculo</label><select id="svAgg"><option value="count">Contagem</option><option value="distinct">Contagem distinta</option><option value="sum">Soma</option><option value="avg">Média</option><option value="min">Mínimo</option><option value="max">Máximo</option></select></div>
+          <div class="sv-control"><label>Agrupar por</label><select id="svCategory"></select></div>
+          <div class="sv-control"><label>Separar séries (opcional)</label><select id="svSeries"></select></div>
+          <div class="sv-control"><label>Coluna de valor</label><select id="svValue"></select><div class="hint" id="svValueHint">Não é necessária para contagem simples.</div></div>
+          <div class="sv-control"><label>Título</label><input id="svWidgetTitle" placeholder="Título automático"></div>
+        </div>
+        <div class="sv-summary"><span id="svBuilderHint">Selecione as colunas do visual.</span><button class="sv-btn primary" id="svAddWidget">+ Adicionar ao painel</button></div>
+      </div>
+      <div class="sv-dashboard-actions"><span class="sv-muted" id="svWidgetCount">Nenhum visual criado.</span><div class="sv-actions"><button class="sv-btn" id="svClearWidgets" disabled>Limpar painel</button><button class="sv-btn accent" id="svExportAll" disabled>Exportar painel em JPEG</button></div></div>
+      <div class="sv-widgetgrid" id="svWidgets"><div class="sv-card sv-empty" id="svDashEmpty">Configure o primeiro gráfico ou tabela acima.</div></div>
+    </section>
+  </div></main>
+  <footer class="sv-foot">Processamento local no navegador · os arquivos não são enviados a servidores externos</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+document.body.classList.add("smart-v2");
+const oldLogo=document.querySelector(".sese-logo"); if(oldLogo) document.getElementById("svLogo").src=oldLogo.src;
+
+const S={sources:[],clusters:[],keyClusterId:null,keyMap:{},consolidated:[],columns:[],conflicts:0,missingKeys:0,page:1,search:"",widgets:[]};
+const PAGE=80, COLORS=["#1d5c8f","#78a118","#d57b25","#7359ad","#c24b68","#2f8d81","#ad8a1f","#4772b8","#8a5d3a","#79919f"];
+const $=id=>document.getElementById(id);
+function norm(v){return String(v==null?"":v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim()}
+function normValue(v){return norm(valueText(v)).replace(/\s+/g," ")}
+function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function uid(p){return (p||"x")+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function isEmpty(v){return v==null||String(v).trim()===""}
+function valueText(v){
+  if(v==null)return "";
+  if(v instanceof Date&&!isNaN(v)){const d=String(v.getUTCDate()).padStart(2,"0"),m=String(v.getUTCMonth()+1).padStart(2,"0"),y=v.getUTCFullYear();return d+"/"+m+"/"+y}
+  if(typeof v==="number")return Number.isInteger(v)?String(v):String(Math.round(v*1000000)/1000000).replace(".",",");
+  return String(v).trim();
+}
+function toast(msg,bad){const d=document.createElement("div");d.className="toast"+(bad?" err":"");d.textContent=msg;document.getElementById("toastWrap").appendChild(d);setTimeout(()=>d.remove(),3400)}
+function download(blob,name){const a=document.createElement("a"),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},400)}
+function safeName(s){return norm(s).toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,70)||"exportacao"}
+
+/* Normalização conservadora: só agrupa nomes realmente equivalentes. */
+const HEADER_ALIASES={
+  MOTOR:["MOTOR","NUMERO MOTOR","N MOTOR","NR MOTOR","ID MOTOR","MOTOR ID","CODIGO MOTOR","COD MOTOR"],
+  CODIGO:["CODIGO","COD","COD ITEM","CODIGO ITEM","ITEM CODE","PART NUMBER","PARTNUMBER","P N"],
+  MATRICULA:["MATRICULA","REGISTRO","REGISTRO FUNCIONAL","ID COLABORADOR"],
+  DATA:["DATA","DT","DATE","DIA"],
+  QUANTIDADE:["QUANTIDADE","QTD","QTDE","QTY","QUANTITY"],
+  DESCRICAO:["DESCRICAO","DESC","DESCRICAO ITEM","ITEM DESCRIPTION"],
+  FORNECEDOR:["FORNECEDOR","NOME FORNECEDOR","SUPPLIER","VENDOR"],
+  ORDEM_TRANSPORTE:["OT","ORDEM TRANSPORTE","ORDEM DE TRANSPORTE"],
+  HANDLING_UNIT:["HU","HANDLING UNIT","UNIDADE MANUSEIO","UNIDADE DE MANUSEIO"],
+  NOTA_FISCAL:["NF","NFE","NOTA FISCAL","NUMERO NOTA FISCAL"]
+};
+const ALIAS_LOOKUP={};Object.keys(HEADER_ALIASES).forEach(k=>HEADER_ALIASES[k].forEach(v=>ALIAS_LOOKUP[norm(v)]=k));
+function headerKey(h){
+  let n=norm(h).replace(/[_\-\/\\.]+/g," ").replace(/[^A-Z0-9 ]/g," ").replace(/\s+/g," ").trim();
+  n=n.replace(/\b(NRO|NUM|NUMERO|NO)\b/g,"NUMERO").replace(/\b(COD)\b/g,"CODIGO").replace(/\s+/g," ").trim();
+  return ALIAS_LOOKUP[n]||n.replace(/ /g,"_")||"COLUNA";
+}
+function headerTokens(h){return new Set(norm(h).replace(/[^A-Z0-9 ]/g," ").split(/\s+/).filter(x=>x.length>1))}
+function headerSimilarity(a,b){const A=headerTokens(a),B=headerTokens(b);if(!A.size||!B.size)return 0;let inter=0;A.forEach(x=>{if(B.has(x))inter++});return inter/Math.max(A.size,B.size)}
+function uniqueHeaders(raw){const used={};return raw.map((h,i)=>{let base=isEmpty(h)?"COLUNA "+(i+1):String(h).trim();const n=norm(base);used[n]=(used[n]||0)+1;return used[n]>1?base+" ("+used[n]+")":base})}
+
+function detectHeaderRow(aoa){
+  let best={i:0,score:-1};const lim=Math.min(30,aoa.length);
+  for(let i=0;i<lim;i++){
+    const row=(aoa[i]||[]).slice(0,250),vals=row.filter(v=>!isEmpty(v));if(vals.length<2)continue;
+    const text=vals.filter(v=>typeof v==="string"&&!/^[-+]?\d+[,.]?\d*$/.test(v.trim())).length/vals.length;
+    const uniq=new Set(vals.map(normValue)).size/vals.length;
+    const next=(aoa[i+1]||[]).filter(v=>!isEmpty(v)).length;
+    const score=Math.min(vals.length,25)*1.4+text*9+uniq*5+Math.min(next,20)*.35-i*.12;
+    if(score>best.score)best={i,score};
+  }return best.i;
+}
+function sourceFromAOA(fileName,sheetName,aoa){
+  const hi=detectHeaderRow(aoa),raw=aoa[hi]||[],last=Math.max(0,...raw.map((v,i)=>isEmpty(v)?0:i));
+  const headers=uniqueHeaders(raw.slice(0,last+1));
+  const rows=aoa.slice(hi+1).filter(r=>(r||[]).some(v=>!isEmpty(v))).map(r=>{const o={};headers.forEach((h,i)=>o[h]=(r||[])[i]===undefined?null:r[i]);return o});
+  return {id:uid("s"),fileName,sheetName,headers,rows,headerRow:hi+1};
+}
+async function importFiles(files){
+  let added=0,empty=0;
+  for(const file of Array.from(files)){
+    try{
+      const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true,raw:true});
+      for(const sn of wb.SheetNames){
+        const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:null,blankrows:false});
+        const src=sourceFromAOA(file.name,sn,aoa);if(!src.rows.length||!src.headers.length){empty++;continue}S.sources.push(src);added++;
+      }
+    }catch(e){console.error(e);toast("Não foi possível ler "+file.name+".",true)}
+  }
+  rebuildSchema();renderImport();
+  if(added)toast(added+" aba(s) com dados importada(s)."+(empty?" "+empty+" aba(s) vazia(s) ignorada(s).":""));
+}
+
+function valuesFor(src,h,limit){const out=[];for(const r of src.rows){if(!isEmpty(r[h]))out.push(normValue(r[h]));if(out.length>=(limit||5000))break}return out}
+function overlapScore(a,b){if(!a.size||!b.size)return 0;let n=0;const small=a.size<b.size?a:b,big=small===a?b:a;small.forEach(x=>{if(big.has(x))n++});return n/Math.max(1,Math.min(a.size,b.size))}
+function candidateStats(cluster){
+  const members=cluster.members,srcs=members.map(m=>S.sources.find(s=>s.id===m.sourceId)).filter(Boolean);let fill=0,uniq=0,total=0;
+  const sets=[];members.forEach(m=>{const s=S.sources.find(x=>x.id===m.sourceId),vals=valuesFor(s,m.header);fill+=vals.length/Math.max(1,s.rows.length);uniq+=new Set(vals).size/Math.max(1,vals.length);total++;sets.push(new Set(vals))});
+  let ov=0,pairs=0;for(let i=0;i<sets.length;i++)for(let j=i+1;j<sets.length;j++){ov+=overlapScore(sets[i],sets[j]);pairs++}
+  const coverage=new Set(members.map(m=>m.sourceId)).size/Math.max(1,S.sources.length),name=norm(cluster.label);
+  const bonus=/(MOTOR|CODIGO|MATRICULA|SERIAL|CHASSI|PLACA|ID|IDENTIFICADOR|OT|HU|CHAVE|PEDIDO|ORDEM|NOTA)/.test(name)?12:0;
+  const score=coverage*28+(total?fill/total:0)*14+(total?uniq/total:0)*28+(pairs?ov/pairs:0)*30+bonus;
+  return {score,coverage,fill:total?fill/total:0,unique:total?uniq/total:0,overlap:pairs?ov/pairs:0};
+}
+function rebuildSchema(){
+  const map=new Map();S.sources.forEach(src=>src.headers.forEach(h=>{const k=headerKey(h);if(!map.has(k))map.set(k,{id:k,label:h,members:[]});map.get(k).members.push({sourceId:src.id,header:h})}));
+  S.clusters=Array.from(map.values()).map(c=>Object.assign(c,{stats:candidateStats(c)})).sort((a,b)=>a.label.localeCompare(b.label,"pt-BR",{numeric:true}));
+  const candidates=S.clusters.slice().sort((a,b)=>b.stats.score-a.stats.score);
+  if(!S.keyClusterId||!S.clusters.some(c=>c.id===S.keyClusterId))S.keyClusterId=candidates[0]?candidates[0].id:null;
+  autoMapKey();
+}
+function selectedCluster(){return S.clusters.find(c=>c.id===S.keyClusterId)||null}
+function autoMapKey(){
+  S.keyMap={};const c=selectedCluster();if(!c)return;
+  const exactBySrc={};c.members.forEach(m=>{if(!exactBySrc[m.sourceId])exactBySrc[m.sourceId]=m.header});
+  const base=new Set();c.members.forEach(m=>valuesFor(S.sources.find(s=>s.id===m.sourceId),m.header).forEach(v=>base.add(v)));
+  S.sources.forEach(src=>{
+    if(exactBySrc[src.id]){S.keyMap[src.id]={header:exactBySrc[src.id],confidence:1,method:"nome equivalente"};return}
+    let best={header:"",confidence:0,method:"não identificado"};
+    src.headers.forEach(h=>{const vals=new Set(valuesFor(src,h)),ov=overlapScore(vals,base),sim=headerSimilarity(h,c.label),score=ov*.78+sim*.22;if(score>best.confidence)best={header:h,confidence:score,method:ov>.15?"dados coincidentes":"nome semelhante"}});
+    S.keyMap[src.id]=best.confidence>=.22?best:{header:"",confidence:best.confidence,method:"revisar"};
+  });
+}
+function keyCandidates(){return S.clusters.slice().sort((a,b)=>b.stats.score-a.stats.score)}
+function renderImport(){
+  $("svSources").innerHTML=S.sources.map(src=>{const m=S.keyMap[src.id]||{};return '<div class="sv-card sv-source"><div class="sv-source-name">'+esc(src.fileName)+'<small>Aba: '+esc(src.sheetName)+' · cabeçalho na linha '+src.headerRow+'</small></div><div><span class="sv-badge">'+src.rows.length+' linhas</span></div><div><label>Coluna-motor nesta aba</label><select data-keysrc="'+src.id+'"><option value="">— selecione —</option>'+src.headers.map(h=>'<option value="'+esc(h)+'"'+(h===m.header?' selected':'')+'>'+esc(h)+'</option>').join('')+'</select></div><button class="sv-btn sm danger" data-remove="'+src.id+'" title="Remover">✕</button></div>'}).join("");
+  const has=S.sources.length>0;$("svClear").disabled=!has;$("svConsolidate").disabled=!has;$("svKeyBox").classList.toggle("sv-hidden",!has);
+  $("svImportSummary").textContent=has?S.sources.length+" aba(s) · "+S.sources.reduce((n,s)=>n+s.rows.length,0)+" linhas brutas · "+S.clusters.length+" grupos de colunas":"Nenhuma planilha importada.";
+  if(has){
+    $("svKeySelect").innerHTML=keyCandidates().map((c,i)=>'<option value="'+esc(c.id)+'"'+(c.id===S.keyClusterId?' selected':'')+'>'+esc(c.label)+' · nota '+Math.round(c.stats.score)+(i===0?' · sugerida':'')+'</option>').join('');renderMappings();
+  }
+  document.querySelectorAll('[data-keysrc]').forEach(el=>el.onchange=()=>{S.keyMap[el.dataset.keysrc]={header:el.value,confidence:el.value?1:0,method:"seleção manual"};renderMappings()});
+  document.querySelectorAll('[data-remove]').forEach(el=>el.onclick=()=>{S.sources=S.sources.filter(s=>s.id!==el.dataset.remove);rebuildSchema();renderImport();invalidateResult()});
+}
+function renderMappings(){
+  const c=selectedCluster();if(!c)return;const missing=S.sources.filter(s=>!(S.keyMap[s.id]||{}).header).length;
+  $("svKeyNotice").className="sv-notice"+(missing?" sv-warn":"");$("svKeyNotice").textContent=missing?missing+" aba(s) ainda estão sem coluna-motor. Se consolidar assim, as linhas dessas abas não poderão ser relacionadas e ficarão separadas.":"Mapeamento completo. Valores repetidos da coluna-motor serão unidos em uma única linha.";
+  $("svMappings").innerHTML='<div class="sv-muted">Conferência do relacionamento</div>'+S.sources.map(src=>{const m=S.keyMap[src.id]||{},cl=m.confidence>=.65?'ok':m.confidence>=.3?'mid':'low';return '<div class="sv-maprow"><div class="n">'+esc(src.fileName)+' · '+esc(src.sheetName)+'</div><div class="n"><b>'+esc(m.header||"NÃO MAPEADA")+'</b></div><div class="sv-confidence '+cl+'">'+esc(m.method||"")+(m.header&&m.confidence<1?' · '+Math.round(m.confidence*100)+'%':'')+'</div></div>'}).join('');
+}
+function invalidateResult(){S.consolidated=[];S.columns=[];S.widgets=[];setTab("data",false);setTab("dash",false)}
+
+function mergeValue(record,col,value,meta){
+  const txt=valueText(value);if(!txt)return;if(isEmpty(record[col])){record[col]=txt;return}
+  const oldParts=String(record[col]).split(" | ").map(x=>x.trim()),nv=normValue(txt);if(oldParts.some(x=>normValue(x)===nv))return;
+  record[col]=oldParts.concat([txt]).join(" | ");meta.conflicts.add(col);
+}
+function consolidate(){
+  if(!S.sources.length)return;const keyC=selectedCluster();if(!keyC){toast("Selecione a coluna-motor.",true);return}
+  const keyLabel=keyC.label,keyHeaders=new Map();S.sources.forEach(src=>keyHeaders.set(src.id,(S.keyMap[src.id]||{}).header||""));
+  const colLabels=new Map();S.clusters.forEach(c=>colLabels.set(c.id,c.label));
+  const data=new Map();let missing=0;
+  S.sources.forEach(src=>src.rows.forEach((row,ri)=>{
+    const kh=keyHeaders.get(src.id),rawKey=kh?row[kh]:null,keyText=valueText(rawKey),mapKey=keyText?normValue(rawKey):"__SEM_CHAVE__"+src.id+"_"+ri;if(!keyText)missing++;
+    if(!data.has(mapKey))data.set(mapKey,{row:{},meta:{sources:new Set(),rows:0,conflicts:new Set(),missingKey:!keyText}});
+    const rec=data.get(mapKey);rec.meta.sources.add(src.fileName+" · "+src.sheetName);rec.meta.rows++;
+    if(keyText)mergeValue(rec.row,keyLabel,keyText,rec.meta);else rec.row[keyLabel]="SEM CHAVE · "+(ri+2);
+    src.headers.forEach(h=>{if(h===kh)return;const cid=headerKey(h);if(cid===keyC.id)return;mergeValue(rec.row,colLabels.get(cid)||h,row[h],rec.meta)});
+  }));
+  const mappedKeyClusterIds=new Set();keyHeaders.forEach(h=>{if(h)mappedKeyClusterIds.add(headerKey(h))});
+  const baseCols=[keyLabel],seen=new Set([keyLabel]);S.clusters.forEach(c=>{if(!mappedKeyClusterIds.has(c.id)&&!seen.has(c.label)){seen.add(c.label);baseCols.push(c.label)}});
+  const rows=Array.from(data.values()).map(x=>{x.row["ARQUIVOS DE ORIGEM"]=Array.from(x.meta.sources).join(" | ");x.row["REGISTROS UNIFICADOS"]=x.meta.rows;if(x.meta.conflicts.size)x.row["DIVERGÊNCIAS"]=Array.from(x.meta.conflicts).join(", ");Object.defineProperty(x.row,"_meta",{value:x.meta,enumerable:false});return x.row});
+  const anyConflict=rows.some(r=>r.DIVERGÊNCIAS),cols=baseCols.concat(["ARQUIVOS DE ORIGEM","REGISTROS UNIFICADOS"]);if(anyConflict)cols.push("DIVERGÊNCIAS");
+  S.consolidated=rows;S.columns=cols;S.conflicts=rows.filter(r=>r._meta.conflicts.size).length;S.missingKeys=missing;S.page=1;S.search="";$("svSearch").value="";
+  setTab("data",true);setTab("dash",true);renderData();setupBuilder();switchPane("data");
+  toast(rows.length+" registro(s) consolidados a partir de "+S.sources.reduce((n,s)=>n+s.rows.length,0)+" linhas.");
+}
+
+function setTab(name,on){const b=document.querySelector('[data-svtab="'+name+'"]');if(b)b.disabled=!on}
+function switchPane(name){document.querySelectorAll('.sv-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.sv-tab').forEach(b=>b.classList.toggle('active',b.dataset.svtab===name));$('svPane'+(name==='import'?'Import':name==='data'?'Data':'Dash')).classList.add('active');if(name==='dash')renderWidgets()}
+document.querySelectorAll('.sv-tab').forEach(b=>b.onclick=()=>{if(!b.disabled)switchPane(b.dataset.svtab)});
+function filteredRows(){const q=norm(S.search);if(!q)return S.consolidated;return S.consolidated.filter(r=>S.columns.some(c=>norm(r[c]).includes(q)))}
+function renderData(){
+  const raw=S.sources.reduce((n,s)=>n+s.rows.length,0),saved=raw-S.consolidated.length;
+  $('svKpis').innerHTML=[['Abas importadas',S.sources.length,''],['Linhas de origem',raw,''],['Registros consolidados',S.consolidated.length,''],['Duplicidades unificadas',Math.max(0,saved),''],['Linhas com divergência',S.conflicts,S.missingKeys?S.missingKeys+' sem chave':'']].map(k=>'<div class="sv-card sv-kpi"><label>'+k[0]+'</label><b>'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+  $('svDataHead').innerHTML=S.columns.map(c=>'<th>'+esc(c)+'</th>').join('');renderDataRows();
+}
+function renderDataRows(){
+  const rows=filteredRows(),pages=Math.max(1,Math.ceil(rows.length/PAGE));S.page=Math.min(S.page,pages);const start=(S.page-1)*PAGE,part=rows.slice(start,start+PAGE);
+  $('svDataBody').innerHTML=part.map(r=>'<tr>'+S.columns.map(c=>'<td class="'+(r._meta&&r._meta.conflicts.has(c)?'conflict':'')+'" title="'+esc(r[c]||'')+'">'+esc(r[c]||'')+'</td>').join('')+'</tr>').join('');
+  $('svRowCount').textContent=rows.length+' registro(s)'+(S.search?' filtrados':'');$('svPageInfo').textContent='Página '+S.page+' de '+pages;$('svPrev').disabled=S.page<=1;$('svNext').disabled=S.page>=pages;
+}
+function exportRows(){return filteredRows()}
+function csvCell(v){const s=String(v==null?'':v).replace(/"/g,'""');return '"'+s+'"'}
+function exportCsv(){const lines=[S.columns.map(csvCell).join(';')];exportRows().forEach(r=>lines.push(S.columns.map(c=>csvCell(r[c])).join(';')));download(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),'planilha_consolidada.csv')}
+function exportXlsx(){const data=exportRows().map(r=>{const o={};S.columns.forEach(c=>o[c]=r[c]||'');return o}),ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Consolidado');XLSX.writeFile(wb,'planilha_consolidada.xlsx')}
+
+function parseNumber(v){
+  if(typeof v==='number'&&isFinite(v))return v;if(isEmpty(v))return null;let s=String(v).trim().replace(/\s/g,'').replace(/R\$/gi,'').replace(/%$/,'');
+  if(/^[-+]?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s))s=s.replace(/\./g,'').replace(',','.');else if(/^[-+]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');else if(s.includes(',')&&!s.includes('.'))s=s.replace(',','.');
+  const n=Number(s);return isFinite(n)?n:null;
+}
+function parseDateSort(v){const s=String(v||'').trim();let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;return y*10000+(+m[2])*100+(+m[1])}m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);return m?(+m[1])*10000+(+m[2])*100+(+m[3]):null}
+function columnProfile(c){const vals=S.consolidated.map(r=>r[c]).filter(v=>!isEmpty(v)).slice(0,3000),num=vals.filter(v=>parseNumber(v)!=null).length,date=vals.filter(v=>parseDateSort(v)!=null).length;return {numeric:vals.length&&num/vals.length>=.60,date:vals.length&&date/vals.length>=.75,filled:vals.length}}
+function setupBuilder(){
+  const opts=S.columns.filter(c=>c!=="ARQUIVOS DE ORIGEM"&&c!=="DIVERGÊNCIAS"),numeric=opts.filter(c=>columnProfile(c).numeric&&c!=="REGISTROS UNIFICADOS");
+  $('svCategory').innerHTML=opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).date?' · data':'')+'</option>').join('');
+  $('svSeries').innerHTML='<option value="">— sem separação —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
+  $('svValue').innerHTML='<option value="">— nenhuma —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).numeric?' · numérica':'')+'</option>').join('');
+  if(numeric[0])$('svValue').value=numeric[0];updateBuilder();
+}
+function updateBuilder(){const agg=$('svAgg').value,need=!['count'].includes(agg);$('svValueHint').textContent=need?'Selecione a coluna que será calculada.':'Na contagem simples, a coluna de valor é opcional.';$('svBuilderHint').textContent=$('svChartType').value==='pie'?'Gráfico de pizza limitado às 12 maiores categorias.':'Categorias muito numerosas serão limitadas às 30 mais relevantes.'}
+function defaultTitle(cfg){const names={count:'Contagem',distinct:'Contagem distinta',sum:'Soma',avg:'Média',min:'Mínimo',max:'Máximo'};return names[cfg.agg]+(cfg.value?' de '+cfg.value:'')+' por '+cfg.category+(cfg.series?' e '+cfg.series:'')}
+function aggregate(cfg){
+  const map=new Map();let invalid=0;S.consolidated.forEach(r=>{const cat=valueText(r[cfg.category])||'(VAZIO)',ser=cfg.series?(valueText(r[cfg.series])||'(VAZIO)'):'TOTAL',k=cat+'\u0001'+ser;if(!map.has(k))map.set(k,{category:cat,series:ser,count:0,nums:[],distinct:new Set()});const a=map.get(k);a.count++;if(cfg.value){a.distinct.add(normValue(r[cfg.value]));const n=parseNumber(r[cfg.value]);if(n!=null)a.nums.push(n);else if(!isEmpty(r[cfg.value]))invalid++}});
+  let out=Array.from(map.values()).map(a=>{let v=a.count;if(cfg.agg==='distinct')v=a.distinct.size;if(cfg.agg==='sum')v=a.nums.reduce((x,y)=>x+y,0);if(cfg.agg==='avg')v=a.nums.length?a.nums.reduce((x,y)=>x+y,0)/a.nums.length:0;if(cfg.agg==='min')v=a.nums.length?Math.min(...a.nums):0;if(cfg.agg==='max')v=a.nums.length?Math.max(...a.nums):0;return {category:a.category,series:a.series,value:v,valid:a.nums.length}});
+  const totals=new Map();out.forEach(x=>totals.set(x.category,(totals.get(x.category)||0)+x.value));let cats=Array.from(totals.keys());const dates=cats.every(c=>parseDateSort(c)!=null);cats.sort((a,b)=>dates?parseDateSort(a)-parseDateSort(b):(totals.get(b)-totals.get(a)||a.localeCompare(b,'pt-BR',{numeric:true})));const lim=cfg.type==='pie'?12:30;cats=cats.slice(0,lim);out=out.filter(x=>cats.includes(x.category));return {rows:out,categories:cats,series:Array.from(new Set(out.map(x=>x.series))).slice(0,10),truncated:totals.size>cats.length,totalCategories:totals.size,invalid};
+}
+function fmtNum(v){return Number(v).toLocaleString('pt-BR',{maximumFractionDigits:2})}
+function svgNode(tag,attrs,text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.keys(attrs||{}).forEach(k=>e.setAttribute(k,attrs[k]));if(text!=null)e.textContent=text;return e}
+function chartSvg(widget,agg){
+  const W=Math.max(720,agg.categories.length*70+130),H=390,p={l:58,r:24,t:24,b:84},pw=W-p.l-p.r,ph=H-p.t-p.b,lookup=new Map();agg.rows.forEach(x=>lookup.set(x.category+'\u0001'+x.series,x.value));let max=Math.max(1,...agg.rows.map(x=>x.value))*1.12;
+  const svg=svgNode('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H,xmlns:'http://www.w3.org/2000/svg'});svg.appendChild(svgNode('rect',{width:W,height:H,fill:'#fff'}));
+  if(widget.type==='pie'){
+    const data=agg.rows.reduce((m,x)=>(m.set(x.category,(m.get(x.category)||0)+x.value),m),new Map()),arr=Array.from(data.entries()),total=arr.reduce((n,x)=>n+x[1],0)||1,cx=245,cy=188,r=128;let a0=-Math.PI/2;
+    arr.forEach((x,i)=>{const a1=a0+(x[1]/total)*Math.PI*2,x1=cx+r*Math.cos(a0),y1=cy+r*Math.sin(a0),x2=cx+r*Math.cos(a1),y2=cy+r*Math.sin(a1),large=a1-a0>Math.PI?1:0,d='M '+cx+' '+cy+' L '+x1+' '+y1+' A '+r+' '+r+' 0 '+large+' 1 '+x2+' '+y2+' Z';svg.appendChild(svgNode('path',{d,fill:COLORS[i%COLORS.length],stroke:'#fff','stroke-width':2}));a0=a1});
+    arr.forEach((x,i)=>{const y=62+i*23;svg.appendChild(svgNode('rect',{x:440,y:y-9,width:10,height:10,rx:2,fill:COLORS[i%COLORS.length]}));svg.appendChild(svgNode('text',{x:458,y,'font-size':11,'font-family':'Poppins,Arial',fill:'#405267'},x[0]+' · '+fmtNum(x[1])+' · '+fmtNum(x[1]/total*100)+'%'))});return svg;
+  }
+  for(let i=0;i<=5;i++){const y=p.t+ph-i*ph/5,v=max*i/5;svg.appendChild(svgNode('line',{x1:p.l,x2:W-p.r,y1:y,y2:y,stroke:'#e6ebf0','stroke-dasharray':'3 4'}));svg.appendChild(svgNode('text',{x:p.l-9,y:y+4,'text-anchor':'end','font-size':10,'font-family':'Poppins,Arial',fill:'#7b8999'},fmtNum(v)))}
+  const step=pw/Math.max(1,agg.categories.length),y=v=>p.t+ph-(v/max)*ph;
+  if(widget.type==='bar')agg.categories.forEach((c,ci)=>{const bw=Math.min(28,(step-12)/Math.max(1,agg.series.length)),start=p.l+ci*step+(step-bw*agg.series.length)/2;agg.series.forEach((s,si)=>{const v=lookup.get(c+'\u0001'+s)||0,yy=y(v);svg.appendChild(svgNode('rect',{x:start+si*bw,y:yy,width:Math.max(2,bw-3),height:p.t+ph-yy,rx:3,fill:COLORS[si%COLORS.length]}));if(agg.categories.length*agg.series.length<45&&v)svg.appendChild(svgNode('text',{x:start+si*bw+(bw-3)/2,y:yy-4,'text-anchor':'middle','font-size':9,'font-weight':700,'font-family':'Poppins,Arial',fill:'#43566a'},fmtNum(v)))})});
+  if(widget.type==='line')agg.series.forEach((s,si)=>{const pts=agg.categories.map((c,ci)=>[p.l+ci*step+step/2,y(lookup.get(c+'\u0001'+s)||0),lookup.get(c+'\u0001'+s)||0]);svg.appendChild(svgNode('polyline',{points:pts.map(q=>q[0]+','+q[1]).join(' '),fill:'none',stroke:COLORS[si%COLORS.length],'stroke-width':2.5,'stroke-linejoin':'round'}));pts.forEach(q=>svg.appendChild(svgNode('circle',{cx:q[0],cy:q[1],r:3.5,fill:COLORS[si%COLORS.length],stroke:'#fff','stroke-width':1.3}))) });
+  agg.categories.forEach((c,ci)=>{const x=p.l+ci*step+step/2,t=svgNode('text',{x,y:H-p.b+18,'text-anchor':'end','font-size':9.5,'font-family':'Poppins,Arial',fill:'#667789',transform:'rotate(-38 '+x+' '+(H-p.b+18)+')'},c.length>25?c.slice(0,24)+'…':c);svg.appendChild(t)});svg.appendChild(svgNode('line',{x1:p.l,x2:p.l,y1:p.t,y2:p.t+ph,stroke:'#bac5d0'}));svg.appendChild(svgNode('line',{x1:p.l,x2:W-p.r,y1:p.t+ph,y2:p.t+ph,stroke:'#bac5d0'}));return svg;
+}
+function renderSummaryTable(body,widget,agg){const lookup=new Map();agg.rows.forEach(x=>lookup.set(x.category+'\u0001'+x.series,x.value));body.innerHTML='<div class="sv-tablewrap"><table class="sv-table"><thead><tr><th>'+esc(widget.category)+'</th>'+agg.series.map(s=>'<th>'+esc(s)+'</th>').join('')+'<th>Total</th></tr></thead><tbody>'+agg.categories.map(c=>{let total=0;const cells=agg.series.map(s=>{const v=lookup.get(c+'\u0001'+s)||0;total+=v;return '<td>'+fmtNum(v)+'</td>'}).join('');return '<tr><td>'+esc(c)+'</td>'+cells+'<td><b>'+fmtNum(total)+'</b></td></tr>'}).join('')+'</tbody></table></div>'}
+function addWidget(){
+  const cfg={id:uid('w'),type:$('svChartType').value,agg:$('svAgg').value,category:$('svCategory').value,series:$('svSeries').value,value:$('svValue').value,title:$('svWidgetTitle').value.trim()};if(!cfg.category){toast('Selecione a coluna de agrupamento.',true);return}if(['distinct','sum','avg','min','max'].includes(cfg.agg)&&!cfg.value){toast('Selecione a coluna de valor para esse cálculo.',true);return}if(['sum','avg','min','max'].includes(cfg.agg)&&!columnProfile(cfg.value).numeric){toast('A coluna de valor escolhida não possui dados numéricos suficientes.',true);return}cfg.title=cfg.title||defaultTitle(cfg);S.widgets.push(cfg);$('svWidgetTitle').value='';renderWidgets();
+}
+function renderWidgets(){
+  const box=$('svWidgets'),empty=$('svDashEmpty');if(empty)empty.remove();if(!S.widgets.length){box.innerHTML='<div class="sv-card sv-empty" id="svDashEmpty">Configure o primeiro gráfico ou tabela acima.</div>'}else box.innerHTML=S.widgets.map(w=>'<article class="sv-card sv-widget" data-widget="'+w.id+'"><div class="sv-widgethead"><div><h3>'+esc(w.title)+'</h3><p>'+esc(defaultTitle(w))+'</p></div><div class="sv-actions"><button class="sv-btn sm" data-jpeg="'+w.id+'">JPEG</button><button class="sv-btn sm danger" data-delwidget="'+w.id+'">✕</button></div></div><div class="sv-widgetbody" id="body_'+w.id+'"></div><div class="sv-legend" id="legend_'+w.id+'"></div></article>').join('');
+  S.widgets.forEach(w=>{const a=aggregate(w),body=$('body_'+w.id);if(w.type==='table')renderSummaryTable(body,w,a);else body.appendChild(chartSvg(w,a));$('legend_'+w.id).innerHTML=w.type==='pie'?'':a.series.map((s,i)=>'<span><i style="background:'+COLORS[i%COLORS.length]+'"></i>'+esc(s)+'</span>').join('');if(a.truncated)body.insertAdjacentHTML('beforeend','<div class="sv-muted">Exibindo as principais categorias: '+a.categories.length+' de '+a.totalCategories+'.</div>');if(a.invalid&&['sum','avg','min','max'].includes(w.agg))body.insertAdjacentHTML('beforeend','<div class="sv-muted">Atenção: '+a.invalid+' valor(es) não numérico(s) ou divergente(s) foram desconsiderados neste cálculo.</div>')});
+  document.querySelectorAll('[data-delwidget]').forEach(b=>b.onclick=()=>{S.widgets=S.widgets.filter(w=>w.id!==b.dataset.delwidget);renderWidgets()});document.querySelectorAll('[data-jpeg]').forEach(b=>b.onclick=()=>exportWidget(b.dataset.jpeg));
+  $('svWidgetCount').textContent=S.widgets.length?S.widgets.length+' visual(is) no painel.':'Nenhum visual criado.';$('svClearWidgets').disabled=!S.widgets.length;$('svExportAll').disabled=!S.widgets.length;
+}
+function wrapText(ctx,text,max){const words=String(text).split(/\s+/),lines=[];let line='';words.forEach(w=>{const test=line?line+' '+w:w;if(ctx.measureText(test).width>max&&line){lines.push(line);line=w}else line=test});if(line)lines.push(line);return lines}
+function tableCanvas(widget,agg){const cols=1+agg.series.length+1,cw=Math.max(130,Math.min(230,1200/cols)),W=Math.max(720,cols*cw),rh=34,H=70+(agg.categories.length+1)*rh+20,c=document.createElement('canvas');c.width=W*2;c.height=H*2;const x=c.getContext('2d');x.scale(2,2);x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#173f65';x.font='700 16px Poppins,Arial';x.fillText(widget.title,16,28);x.font='600 10px Poppins,Arial';const heads=[widget.category].concat(agg.series,['Total']);heads.forEach((h,i)=>{x.fillStyle='#173f65';x.fillRect(i*cw,50,cw,rh);x.fillStyle='#fff';x.fillText(String(h).slice(0,22),i*cw+8,71)});const lookup=new Map();agg.rows.forEach(r=>lookup.set(r.category+'\u0001'+r.series,r.value));agg.categories.forEach((cat,ri)=>{let total=0;const vals=agg.series.map(s=>{const v=lookup.get(cat+'\u0001'+s)||0;total+=v;return fmtNum(v)});[cat].concat(vals,[fmtNum(total)]).forEach((v,ci)=>{x.fillStyle=ri%2?'#f7f9fb':'#fff';x.fillRect(ci*cw,50+(ri+1)*rh,cw,rh);x.strokeStyle='#dfe5ec';x.strokeRect(ci*cw,50+(ri+1)*rh,cw,rh);x.fillStyle='#33485d';x.font=(ci===cols-1?'700':'500')+' 10px Poppins,Arial';x.fillText(String(v).slice(0,25),ci*cw+8,72+(ri+1)*rh)})});return c}
+function svgCanvas(widget,svg){return new Promise((resolve,reject)=>{const xml=new XMLSerializer().serializeToString(svg),blob=new Blob([xml],{type:'image/svg+xml'}),url=URL.createObjectURL(blob),img=new Image();img.onload=()=>{const vb=svg.viewBox.baseVal,W=Math.max(720,vb.width),H=vb.height,c=document.createElement('canvas');c.width=W*2;c.height=(H+62)*2;const x=c.getContext('2d');x.scale(2,2);x.fillStyle='#fff';x.fillRect(0,0,W,H+62);x.fillStyle='#173f65';x.font='700 17px Poppins,Arial';const lines=wrapText(x,widget.title,W-32).slice(0,2);lines.forEach((t,i)=>x.fillText(t,16,25+i*20));x.drawImage(img,0,58,W,H);URL.revokeObjectURL(url);resolve(c)};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('svg'))};img.src=url})}
+async function widgetCanvas(widget){const agg=aggregate(widget);if(widget.type==='table')return tableCanvas(widget,agg);const svg=document.querySelector('[data-widget="'+widget.id+'"] svg')||chartSvg(widget,agg);return svgCanvas(widget,svg)}
+function saveCanvas(c,name){c.toBlob(b=>download(b,name),'image/jpeg',.95)}
+async function exportWidget(id){const w=S.widgets.find(x=>x.id===id);if(!w)return;try{saveCanvas(await widgetCanvas(w),safeName(w.title)+'.jpeg')}catch(e){toast('Não foi possível gerar o JPEG.',true)}}
+async function exportAll(){try{const canv=[];for(const w of S.widgets)canv.push(await widgetCanvas(w));const gap=28,W=Math.max(...canv.map(c=>c.width)),H=canv.reduce((n,c)=>n+c.height,0)+gap*(canv.length+1),out=document.createElement('canvas');out.width=W;out.height=H;const x=out.getContext('2d');x.fillStyle='#f1f4f7';x.fillRect(0,0,W,H);let y=gap;canv.forEach(c=>{x.fillStyle='#fff';x.fillRect((W-c.width)/2,y,c.width,c.height);x.drawImage(c,(W-c.width)/2,y);y+=c.height+gap});saveCanvas(out,'dashboard_consolidado.jpeg')}catch(e){console.error(e);toast('Não foi possível exportar o painel.',true)}}
+function exportTableJpeg(){const rows=filteredRows().slice(0,250),cols=S.columns.slice(0,12),cw=210,rh=31,W=Math.max(900,cols.length*cw),H=72+(rows.length+1)*rh,c=document.createElement('canvas');c.width=W*2;c.height=H*2;const x=c.getContext('2d');x.scale(2,2);x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#173f65';x.font='700 18px Poppins,Arial';x.fillText('Planilha consolidada',14,28);x.font='500 10px Poppins,Arial';x.fillStyle='#6b798a';x.fillText(rows.length+(filteredRows().length>250?' de '+filteredRows().length:'')+' registros · '+cols.length+(S.columns.length>12?' de '+S.columns.length:'')+' colunas',14,45);cols.forEach((h,i)=>{x.fillStyle='#173f65';x.fillRect(i*cw,56,cw,rh);x.fillStyle='#fff';x.font='700 9px Poppins,Arial';x.fillText(h.slice(0,27),i*cw+7,76)});rows.forEach((r,ri)=>cols.forEach((h,ci)=>{x.fillStyle=ri%2?'#f7f9fb':'#fff';x.fillRect(ci*cw,56+(ri+1)*rh,cw,rh);x.strokeStyle='#e1e6ec';x.strokeRect(ci*cw,56+(ri+1)*rh,cw,rh);x.fillStyle='#35485b';x.font='500 9px Poppins,Arial';x.fillText(String(r[h]||'').slice(0,31),ci*cw+7,76+(ri+1)*rh)}));saveCanvas(c,'tabela_consolidada.jpeg');if(filteredRows().length>250||S.columns.length>12)toast('JPEG limitado a 250 linhas e 12 colunas para manter a leitura. O Excel contém a base completa.')}
+
+const drop=$('svDrop'),inp=$('svFiles');drop.onclick=()=>inp.click();drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};drop.ondragleave=()=>drop.classList.remove('drag');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');importFiles(e.dataTransfer.files)};inp.onchange=()=>{importFiles(inp.files);inp.value=''};
+$('svKeySelect').onchange=()=>{S.keyClusterId=$('svKeySelect').value;autoMapKey();renderImport()};$('svConsolidate').onclick=consolidate;$('svClear').onclick=()=>{if(!confirm('Remover todas as planilhas, a consolidação e o dashboard?'))return;S.sources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport();switchPane('import')};
+$('svSearch').oninput=e=>{S.search=e.target.value;S.page=1;renderDataRows()};$('svPrev').onclick=()=>{if(S.page>1){S.page--;renderDataRows()}};$('svNext').onclick=()=>{S.page++;renderDataRows()};$('svCsv').onclick=exportCsv;$('svXlsx').onclick=exportXlsx;$('svTableJpeg').onclick=exportTableJpeg;$('svGoDash').onclick=()=>switchPane('dash');
+['svChartType','svAgg','svCategory','svSeries','svValue'].forEach(id=>$(id).onchange=updateBuilder);$('svAddWidget').onclick=addWidget;$('svClearWidgets').onclick=()=>{S.widgets=[];renderWidgets()};$('svExportAll').onclick=exportAll;
+
+/* Gancho de teste local: não interfere na operação normal. */
+window.__SMART_TEST__={
+  reset(){S.sources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport()},
+  addAOA(file,sheet,aoa){const src=sourceFromAOA(file,sheet,aoa);S.sources.push(src);rebuildSchema();renderImport();return src.id},
+  selectKey(label){const c=S.clusters.find(x=>norm(x.label)===norm(label)||x.id===headerKey(label));if(c){S.keyClusterId=c.id;autoMapKey();renderImport()}return !!c},
+  map(sourceId,header){S.keyMap[sourceId]={header,confidence:1,method:'teste'};renderImport()},
+  consolidate, state(){return {sources:S.sources.map(s=>({id:s.id,file:s.fileName,sheet:s.sheetName,rows:s.rows.length,headers:s.headers})),key:S.keyClusterId,keyMap:S.keyMap,columns:S.columns,rows:S.consolidated.map(r=>{const o={};S.columns.forEach(c=>o[c]=r[c]);return o}),conflicts:S.conflicts,missingKeys:S.missingKeys}}
+};
+renderImport();
 })();
 </script>
 </body>
