@@ -1685,7 +1685,15 @@ function uid(p){return (p||"x")+Date.now().toString(36)+Math.random().toString(3
 function isEmpty(v){return v==null||String(v).trim()===""}
 function valueText(v){
   if(v==null)return "";
-  if(v instanceof Date&&!isNaN(v)){const d=String(v.getUTCDate()).padStart(2,"0"),m=String(v.getUTCMonth()+1).padStart(2,"0"),y=v.getUTCFullYear();return d+"/"+m+"/"+y}
+  if(v instanceof Date&&!isNaN(v)){
+    const isPureTime=v.getUTCFullYear()===1899&&v.getUTCMonth()===11&&v.getUTCDate()===30;
+    const hh=v.getUTCHours(),mi=v.getUTCMinutes(),ss=v.getUTCSeconds();
+    const hasTime=hh||mi||ss;
+    const timeStr=String(hh).padStart(2,"0")+":"+String(mi).padStart(2,"0")+(ss?":"+String(ss).padStart(2,"0"):"");
+    if(isPureTime)return timeStr;
+    const d=String(v.getUTCDate()).padStart(2,"0"),m=String(v.getUTCMonth()+1).padStart(2,"0"),y=v.getUTCFullYear();
+    return hasTime?(d+"/"+m+"/"+y+" "+timeStr):(d+"/"+m+"/"+y);
+  }
   if(typeof v==="number")return Number.isInteger(v)?String(v):String(Math.round(v*1000000)/1000000).replace(".",",");
   return String(v).trim();
 }
@@ -1741,25 +1749,26 @@ function sourceFromAOA(fileName,sheetName,aoa){
   const pivotal=headerRowLooksPivotal(raw);
   const headers=uniqueHeaders(raw.slice(0,last+1));
   const rows=aoa.slice(hi+1).filter(r=>(r||[]).some(v=>!isEmpty(v))).map(r=>{const o={};headers.forEach((h,i)=>o[h]=(r||[])[i]===undefined?null:r[i]);return o});
-  const src={id:uid("s"),fileName,sheetName,headers,rows,headerRow:hi+1,pivotal};
-  if(pivotal)src.rawAOA=aoa.slice(hi);
-  return src;
+  return {id:uid("s"),fileName,sheetName,headers,rows,headerRow:hi+1,pivotal};
 }
 async function importFiles(files){
   let added=0,empty=0,pivot=0;
   for(const file of Array.from(files)){
     try{
-      const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true,raw:true});
+      const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true,cellNF:true,raw:true});
       for(const sn of wb.SheetNames){
         const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:null,blankrows:false});
         const src=sourceFromAOA(file.name,sn,aoa);if(!src.rows.length||!src.headers.length){empty++;continue}
-        if(src.pivotal){S.pivotSources.push(src);pivot++}else{S.sources.push(src)}
+        /* Reaproveita a aba original (não reconstrói a partir de valores soltos) para preservar
+           a formatação de cada célula — datas continuam datas e horários (h:mm:ss) continuam
+           horários, sem virar "01/01/1900 00:54:12" no Excel exportado. */
+        if(src.pivotal){src.rawSheet=wb.Sheets[sn];S.pivotSources.push(src);pivot++}else{S.sources.push(src)}
         added++;
       }
     }catch(e){console.error(e);toast("Não foi possível ler "+file.name+".",true)}
   }
   rebuildSchema();renderImport();
-  if(added)toast(added+" aba(s) processada(s)."+(pivot?" "+pivot+" identificada(s) como resumo/pivô, mantida(s) à parte e incluída(s) como aba extra no Excel exportado.":"")+(empty?" "+empty+" aba(s) vazia(s) ignorada(s).":""));
+  if(added)toast(added+" aba(s) processada(s)."+(pivot?" "+pivot+" identificada(s) como resumo/pivô, mantida(s) à parte com a formatação original (datas e horários preservados) e incluída(s) como aba extra no Excel exportado.":"")+(empty?" "+empty+" aba(s) vazia(s) ignorada(s).":""));
 }
 
 function valuesFor(src,h,limit){const out=[];for(const r of src.rows){if(!isEmpty(r[h]))out.push(normValue(r[h]));if(out.length>=(limit||5000))break}return out}
@@ -1863,15 +1872,38 @@ function safeSheetName(name,used){
   return s;
 }
 function exportXlsx(){
-  const data=exportRows().map(r=>{const o={};S.columns.forEach(c=>o[c]=r[c]||'');return o}),ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();
+  const colTypes={};S.columns.forEach(c=>colTypes[c]=detectColumnType(c));
+  const aoa=[S.columns.slice()];
+  exportRows().forEach(r=>{
+    aoa.push(S.columns.map(c=>{
+      const raw=r[c];if(isEmpty(raw))return null;
+      const t=colTypes[c];
+      if(t.kind==='number'){const n=parseNumber(raw);return n!=null?n:String(raw)}
+      if(t.kind==='time'){const d=parseTimeStr(raw);return d||String(raw)}
+      if(t.kind==='date'){const d=parseDateTimeStr(raw);return d||String(raw)}
+      return String(raw);
+    }));
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+  for(let C=range.s.c;C<=range.e.c;C++){
+    const col=S.columns[C];if(!col)continue;const t=colTypes[col];let z=null;
+    if(t.kind==='time')z=t.secs?'h:mm:ss':'h:mm';
+    else if(t.kind==='date')z=t.hasTime?(t.secs?'dd/mm/yyyy hh:mm:ss':'dd/mm/yyyy hh:mm'):'dd/mm/yyyy';
+    if(!z)continue;
+    for(let R=range.s.r+1;R<=range.e.r;R++){
+      const cell=ws[XLSX.utils.encode_cell({r:R,c:C})];
+      if(cell&&cell.t==='n')cell.z=z;
+    }
+  }
+  const wb=XLSX.utils.book_new();
   const used=new Set(["CONSOLIDADO"]);
   XLSX.utils.book_append_sheet(wb,ws,'Consolidado');
   S.pivotSources.forEach(src=>{
-    const pws=XLSX.utils.aoa_to_sheet(src.rawAOA);
-    XLSX.utils.book_append_sheet(wb,pws,safeSheetName(src.sheetName,used));
+    XLSX.utils.book_append_sheet(wb,src.rawSheet,safeSheetName(src.sheetName,used));
   });
   XLSX.writeFile(wb,'planilha_consolidada.xlsx');
-  if(S.pivotSources.length)toast(S.pivotSources.length+" aba(s) resumo/pivô incluída(s) como abas extras no arquivo.");
+  if(S.pivotSources.length)toast(S.pivotSources.length+" aba(s) resumo/pivô incluída(s) como abas extras no arquivo, com a formatação original preservada.");
 }
 
 function parseNumber(v){
@@ -1880,12 +1912,35 @@ function parseNumber(v){
   const n=Number(s);return isFinite(n)?n:null;
 }
 function parseDateSort(v){const s=String(v||'').trim();let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;return y*10000+(+m[2])*100+(+m[1])}m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);return m?(+m[1])*10000+(+m[2])*100+(+m[3]):null}
-function columnProfile(c){const vals=S.consolidated.map(r=>r[c]).filter(v=>!isEmpty(v)).slice(0,3000),num=vals.filter(v=>parseNumber(v)!=null).length,date=vals.filter(v=>parseDateSort(v)!=null).length;return {numeric:vals.length&&num/vals.length>=.60,date:vals.length&&date/vals.length>=.75,filled:vals.length}}
+const TIME_RE=/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+const DATE_RE=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?: (\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
+function parseTimeStr(v){const m=String(v==null?'':v).trim().match(TIME_RE);if(!m)return null;return new Date(Date.UTC(1899,11,30,+m[1],+m[2],m[3]?+m[3]:0))}
+function parseDateTimeStr(v){const m=String(v==null?'':v).trim().match(DATE_RE);if(!m)return null;let y=+m[3];if(y<100)y+=2000;return new Date(Date.UTC(y,+m[2]-1,+m[1],m[4]?+m[4]:0,m[5]?+m[5]:0,m[6]?+m[6]:0))}
+/* Classifica cada coluna pelo formato predominante dos seus valores (texto já normalizado por
+   valueText): hora, data (com ou sem hora), número ou texto. Usado para exibir dicas na tela e
+   para gravar o Excel com o tipo de célula/formato nativo correto por coluna. */
+function detectColumnType(c){
+  const vals=S.consolidated.map(r=>r[c]).filter(v=>!isEmpty(v)).slice(0,1200);
+  if(!vals.length)return {kind:'text'};
+  let time=0,dateOnly=0,dateTime=0,num=0,secs=false;
+  vals.forEach(v=>{
+    const s=String(v).trim();let m;
+    if((m=s.match(TIME_RE))){time++;if(m[3])secs=true;return}
+    if((m=s.match(DATE_RE))){if(m[4]!=null){dateTime++;if(m[6])secs=true}else dateOnly++;return}
+    if(parseNumber(v)!=null)num++;
+  });
+  const n=vals.length;
+  if(time/n>=.7)return {kind:'time',secs};
+  if((dateOnly+dateTime)/n>=.7)return {kind:'date',hasTime:dateTime>=dateOnly,secs};
+  if(num/n>=.7)return {kind:'number'};
+  return {kind:'text'};
+}
+function columnProfile(c){const vals=S.consolidated.map(r=>r[c]).filter(v=>!isEmpty(v)).slice(0,3000),num=vals.filter(v=>parseNumber(v)!=null).length,date=vals.filter(v=>parseDateSort(v)!=null).length,t=detectColumnType(c);return {numeric:vals.length&&num/vals.length>=.60,date:vals.length&&date/vals.length>=.75,time:t.kind==='time',filled:vals.length}}
 function setupBuilder(){
   const opts=S.columns.filter(c=>c!=="ARQUIVOS DE ORIGEM"&&c!=="DIVERGÊNCIAS"),numeric=opts.filter(c=>columnProfile(c).numeric&&c!=="REGISTROS UNIFICADOS");
-  $('svCategory').innerHTML=opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).date?' · data':'')+'</option>').join('');
+  $('svCategory').innerHTML=opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).date?' · data':columnProfile(c).time?' · hora':'')+'</option>').join('');
   $('svSeries').innerHTML='<option value="">— sem separação —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
-  $('svValue').innerHTML='<option value="">— nenhuma —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).numeric?' · numérica':'')+'</option>').join('');
+  $('svValue').innerHTML='<option value="">— nenhuma —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).numeric?' · numérica':columnProfile(c).time?' · hora':'')+'</option>').join('');
   if(numeric[0])$('svValue').value=numeric[0];updateBuilder();
 }
 function updateBuilder(){const agg=$('svAgg').value,need=!['count'].includes(agg);$('svValueHint').textContent=need?'Selecione a coluna que será calculada.':'Na contagem simples, a coluna de valor é opcional.';$('svBuilderHint').textContent=$('svChartType').value==='pie'?'Gráfico de pizza limitado às 12 maiores categorias.':'Categorias muito numerosas serão limitadas às 30 mais relevantes.'}
