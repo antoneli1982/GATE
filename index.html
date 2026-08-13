@@ -1606,7 +1606,7 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
 
     <section class="sv-pane" id="svPaneData">
       <div class="sv-head">
-        <div><div class="sv-eyebrow">Etapa 2</div><h1>Base consolidada</h1><p>Uma linha por valor da coluna-motor. Colunas equivalentes aparecem uma única vez; informações complementares são acrescentadas sem apagar valores divergentes.</p></div>
+        <div><div class="sv-eyebrow">Etapa 2</div><h1>Super Planilha consolidada</h1><p>Uma linha por valor da coluna-motor. Colunas equivalentes aparecem uma única vez; informações complementares ganham novos campos e valores divergentes são preservados para conferência.</p></div>
         <div class="sv-actions"><button class="sv-btn" id="svColTypeBtn">Formato das colunas</button><button class="sv-btn" id="svCsv">Exportar CSV</button><button class="sv-btn" id="svXlsx">Exportar Excel</button><button class="sv-btn" id="svTableJpeg">Tabela em JPEG</button><button class="sv-btn" id="svGoDash">Criar novo gráfico</button><button class="sv-btn accent" id="svGoFinal">Informações finais →</button></div>
       </div>
       <div class="sv-kpis" id="svKpis"></div>
@@ -1811,8 +1811,28 @@ function candidateStats(cluster){
   return {score,coverage,fill:total?fill/total:0,unique:total?uniq/total:0,overlap:pairs?ov/pairs:0};
 }
 function rebuildSchema(){
-  const map=new Map();S.sources.forEach(src=>src.headers.forEach(h=>{const k=headerKey(h);if(!map.has(k))map.set(k,{id:k,label:h,members:[]});map.get(k).members.push({sourceId:src.id,header:h})}));
-  S.clusters=Array.from(map.values()).map(c=>Object.assign(c,{stats:candidateStats(c)})).sort((a,b)=>a.label.localeCompare(b.label,"pt-BR",{numeric:true}));
+  /* Primeiro agrupa equivalências explícitas; depois aproxima cabeçalhos de arquivos
+     diferentes quando o nome é muito parecido ou quando nome + conteúdo confirmam
+     que se trata do mesmo campo. O requisito de semelhança nominal evita juntar,
+     por exemplo, duas colunas genéricas que contenham apenas SIM/NÃO. */
+  const initial=new Map();
+  S.sources.forEach(src=>src.headers.forEach(h=>{
+    const k=headerKey(h);if(!initial.has(k))initial.set(k,{id:k,label:h,members:[]});
+    initial.get(k).members.push({sourceId:src.id,header:h});
+  }));
+  const groups=Array.from(initial.values()),parent=groups.map((_,i)=>i);
+  const root=i=>parent[i]===i?i:(parent[i]=root(parent[i]));
+  const unite=(a,b)=>{a=root(a);b=root(b);if(a!==b)parent[b]=a};
+  const groupSources=g=>new Set(g.members.map(m=>m.sourceId));
+  const groupValues=g=>{const out=new Set();g.members.forEach(m=>valuesFor(S.sources.find(s=>s.id===m.sourceId),m.header,2500).forEach(v=>out.add(v)));return out};
+  const srcSets=groups.map(groupSources),valueSets=groups.map(groupValues);
+  for(let i=0;i<groups.length;i++)for(let j=i+1;j<groups.length;j++){
+    if(Array.from(srcSets[i]).some(s=>srcSets[j].has(s)))continue;
+    const sim=headerSimilarity(groups[i].label,groups[j].label),ov=overlapScore(valueSets[i],valueSets[j]);
+    if(sim>=.8||(sim>=.5&&ov>=.72))unite(i,j);
+  }
+  const merged=new Map();groups.forEach((g,i)=>{const r=root(i);if(!merged.has(r))merged.set(r,{id:g.id,label:g.label,members:[]});merged.get(r).members.push(...g.members)});
+  S.clusters=Array.from(merged.values()).map(c=>Object.assign(c,{stats:candidateStats(c)})).sort((a,b)=>a.label.localeCompare(b.label,"pt-BR",{numeric:true}));
   const candidates=S.clusters.slice().sort((a,b)=>b.stats.score-a.stats.score);
   if(!S.keyClusterId||!S.clusters.some(c=>c.id===S.keyClusterId))S.keyClusterId=candidates[0]?candidates[0].id:null;
   autoMapKey();
@@ -1857,7 +1877,7 @@ function mergeValue(record,col,value,meta){
 function consolidate(){
   if(!S.sources.length)return;const keyC=selectedCluster();if(!keyC){toast("Selecione a coluna-motor.",true);return}
   const keyLabel=keyC.label,keyHeaders=new Map();S.sources.forEach(src=>keyHeaders.set(src.id,(S.keyMap[src.id]||{}).header||""));
-  const colLabels=new Map();S.clusters.forEach(c=>colLabels.set(c.id,c.label));
+  const colLabels=new Map();S.clusters.forEach(c=>c.members.forEach(m=>colLabels.set(headerKey(m.header),c.label)));
   const data=new Map();let missing=0;
   S.sources.forEach(src=>src.rows.forEach((row,ri)=>{
     const kh=keyHeaders.get(src.id),rawKey=kh?row[kh]:null,keyText=valueText(rawKey),mapKey=keyText?normValue(rawKey):"__SEM_CHAVE__"+src.id+"_"+ri;if(!keyText)missing++;
@@ -1941,7 +1961,7 @@ function renderDataRows(){
 }
 function exportRows(){return filteredRows()}
 function csvCell(v){const s=String(v==null?'':v).replace(/"/g,'""');return '"'+s+'"'}
-function exportCsv(){const lines=[S.columns.map(csvCell).join(';')];exportRows().forEach(r=>lines.push(S.columns.map(c=>csvCell(r[c])).join(';')));download(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),'planilha_consolidada.csv')}
+function exportCsv(){const lines=[S.columns.map(csvCell).join(';')];exportRows().forEach(r=>lines.push(S.columns.map(c=>csvCell(r[c])).join(';')));download(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),'super_planilha_consolidada.csv')}
 function safeSheetName(name,used){
   let s=String(name||"Aba").replace(/[\\\/\?\*\[\]:]/g,"_").trim().slice(0,31)||"Aba";
   let base=s,i=2;
@@ -1980,7 +2000,7 @@ function exportXlsx(){
   S.pivotSources.forEach(src=>{
     XLSX.utils.book_append_sheet(wb,src.rawSheet,safeSheetName(src.sheetName,used));
   });
-  XLSX.writeFile(wb,'planilha_consolidada.xlsx');
+  XLSX.writeFile(wb,'super_planilha_consolidada.xlsx');
   if(S.pivotSources.length)toast(S.pivotSources.length+" aba(s) resumo/pivô incluída(s) como abas extras no arquivo, com a formatação original preservada.");
 }
 
@@ -2159,7 +2179,7 @@ async function widgetCanvas(widget){const agg=aggregate(widget);if(widget.type==
 function saveCanvas(c,name){c.toBlob(b=>download(b,name),'image/jpeg',.95)}
 async function exportWidget(id){const w=S.widgets.find(x=>x.id===id);if(!w)return;try{saveCanvas(await widgetCanvas(w),safeName(w.title)+'.jpeg')}catch(e){toast('Não foi possível gerar o JPEG.',true)}}
 async function exportAll(){try{const canv=[];for(const w of S.widgets)canv.push(await widgetCanvas(w));const gap=28,W=Math.max(...canv.map(c=>c.width)),H=canv.reduce((n,c)=>n+c.height,0)+gap*(canv.length+1),out=document.createElement('canvas');out.width=W;out.height=H;const x=out.getContext('2d');x.fillStyle='#f1f4f7';x.fillRect(0,0,W,H);let y=gap;canv.forEach(c=>{x.fillStyle='#fff';x.fillRect((W-c.width)/2,y,c.width,c.height);x.drawImage(c,(W-c.width)/2,y);y+=c.height+gap});saveCanvas(out,'dashboard_consolidado.jpeg')}catch(e){console.error(e);toast('Não foi possível exportar o painel.',true)}}
-function exportTableJpeg(){const rows=filteredRows().slice(0,250),cols=S.columns.slice(0,12),cw=210,rh=31,W=Math.max(900,cols.length*cw),H=72+(rows.length+1)*rh,c=document.createElement('canvas');c.width=W*2;c.height=H*2;const x=c.getContext('2d');x.scale(2,2);x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#173f65';x.font='700 18px Poppins,Arial';x.fillText('Planilha consolidada',14,28);x.font='500 10px Poppins,Arial';x.fillStyle='#6b798a';x.fillText(rows.length+(filteredRows().length>250?' de '+filteredRows().length:'')+' registros · '+cols.length+(S.columns.length>12?' de '+S.columns.length:'')+' colunas',14,45);cols.forEach((h,i)=>{x.fillStyle='#173f65';x.fillRect(i*cw,56,cw,rh);x.fillStyle='#fff';x.font='700 9px Poppins,Arial';x.fillText(h.slice(0,27),i*cw+7,76)});rows.forEach((r,ri)=>cols.forEach((h,ci)=>{x.fillStyle=ri%2?'#f7f9fb':'#fff';x.fillRect(ci*cw,56+(ri+1)*rh,cw,rh);x.strokeStyle='#e1e6ec';x.strokeRect(ci*cw,56+(ri+1)*rh,cw,rh);x.fillStyle='#35485b';x.font='500 9px Poppins,Arial';x.fillText(String(r[h]||'').slice(0,31),ci*cw+7,76+(ri+1)*rh)}));saveCanvas(c,'tabela_consolidada.jpeg');if(filteredRows().length>250||S.columns.length>12)toast('JPEG limitado a 250 linhas e 12 colunas para manter a leitura. O Excel contém a base completa.')}
+function exportTableJpeg(){const rows=filteredRows().slice(0,250),cols=S.columns.slice(0,12),cw=210,rh=31,W=Math.max(900,cols.length*cw),H=72+(rows.length+1)*rh,c=document.createElement('canvas');c.width=W*2;c.height=H*2;const x=c.getContext('2d');x.scale(2,2);x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#173f65';x.font='700 18px Poppins,Arial';x.fillText('Super Planilha consolidada',14,28);x.font='500 10px Poppins,Arial';x.fillStyle='#6b798a';x.fillText(rows.length+(filteredRows().length>250?' de '+filteredRows().length:'')+' registros · '+cols.length+(S.columns.length>12?' de '+S.columns.length:'')+' colunas',14,45);cols.forEach((h,i)=>{x.fillStyle='#173f65';x.fillRect(i*cw,56,cw,rh);x.fillStyle='#fff';x.font='700 9px Poppins,Arial';x.fillText(h.slice(0,27),i*cw+7,76)});rows.forEach((r,ri)=>cols.forEach((h,ci)=>{x.fillStyle=ri%2?'#f7f9fb':'#fff';x.fillRect(ci*cw,56+(ri+1)*rh,cw,rh);x.strokeStyle='#e1e6ec';x.strokeRect(ci*cw,56+(ri+1)*rh,cw,rh);x.fillStyle='#35485b';x.font='500 9px Poppins,Arial';x.fillText(String(r[h]||'').slice(0,31),ci*cw+7,76+(ri+1)*rh)}));saveCanvas(c,'super_planilha_consolidada.jpeg');if(filteredRows().length>250||S.columns.length>12)toast('JPEG limitado a 250 linhas e 12 colunas para manter a leitura. O Excel contém a base completa.')}
 
 const drop=$('svDrop'),inp=$('svFiles');drop.onclick=()=>inp.click();drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};drop.ondragleave=()=>drop.classList.remove('drag');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');importFiles(e.dataTransfer.files)};inp.onchange=()=>{importFiles(inp.files);inp.value=''};
 $('svKeySelect').onchange=()=>{S.keyClusterId=$('svKeySelect').value;autoMapKey();renderImport()};$('svConsolidate').onclick=consolidate;$('svClear').onclick=()=>{if(!confirm('Remover todas as planilhas, a consolidação e o dashboard?'))return;S.sources=[];S.pivotSources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport();switchPane('import')};
