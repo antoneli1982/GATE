@@ -1544,6 +1544,13 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
 .sv-colfilter-list{flex:1;overflow:auto;padding:2px 6px;border-top:1px solid #eef1f5;border-bottom:1px solid #eef1f5}
 .sv-colfilter-item{display:flex;align-items:center;gap:8px;padding:6px 6px;font-size:11px;color:#33465c;border-radius:6px;cursor:pointer}.sv-colfilter-item:hover{background:#f4f7fa}.sv-colfilter-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sv-colfilter-item small{color:#93a1b0;font-size:9.5px}
 .sv-colfilter-footer{display:flex;justify-content:flex-end;gap:8px;padding:9px 10px}
+.sv-modal-overlay{position:fixed;inset:0;background:#16324c66;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px}
+.sv-modal{background:#fff;border-radius:14px;box-shadow:0 20px 50px #16324c40;width:min(620px,100%);max-height:82vh;display:flex;flex-direction:column;overflow:hidden}
+.sv-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px}.sv-modal-head h3{margin:0;font-size:15px;color:#153a5c}
+.sv-coltype-list{overflow:auto;padding:0 18px 18px;display:grid;gap:8px}
+.sv-coltype-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border:1px solid #e3e8ee;border-radius:9px}
+.sv-coltype-name{font-size:11.5px;font-weight:700;color:#243a52;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sv-coltype-name small{display:block;font-weight:500;color:#8a97a6;font-size:9.5px;margin-top:2px}
+.sv-coltype-row select{min-width:150px;border:1px solid #cad4df;border-radius:8px;padding:7px 9px;font:500 11px 'Poppins';background:#fff;color:#263a50}
 .sv-builder{padding:16px;margin-bottom:14px}.sv-buildergrid{display:grid;grid-template-columns:1fr .8fr 1fr 1fr .8fr minmax(180px,1.2fr);gap:10px;align-items:end}.sv-control .hint{font-size:9px;color:#8a97a6;margin-top:4px}.sv-dashboard-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.sv-widgetgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.sv-widget{min-width:0;overflow:hidden}.sv-widgethead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:14px 15px 8px}.sv-widgethead h3{font-size:13px;color:#153a5c;margin:0}.sv-widgethead p{font-size:9.5px;color:#8391a1;margin:3px 0 0}.sv-widgetbody{padding:0 12px 14px;min-height:340px;overflow:auto}.sv-widgetbody svg{display:block;width:100%;min-width:620px;height:auto}.sv-widgetbody .sv-tablewrap{max-height:360px}.sv-empty{padding:42px 20px;text-align:center;color:#8492a2;font-size:12px}.sv-legend{display:flex;flex-wrap:wrap;gap:7px 13px;padding:0 15px 13px}.sv-legend span{font-size:9.5px;color:#667587}.sv-legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px}
 .sv-final-config{padding:16px;margin-bottom:14px}.sv-final-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px}.sv-final-filters{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-top:13px;padding-top:13px;border-top:1px solid #e3e8ee}.sv-final-filters .sv-control{min-width:155px}.sv-gates{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:260px}.sv-gate{border:1px solid #cbd5df;background:#fff;color:#617184;border-radius:999px;padding:6px 10px;font:600 10px 'Poppins';cursor:pointer}.sv-gate.on{background:#173f65;border-color:#173f65;color:#fff}.sv-final-charts{display:grid;grid-template-columns:1fr;gap:14px}.sv-final-note{margin-bottom:14px}.sv-final-table{margin-top:14px}.sv-final-table .sv-tablewrap{max-height:420px}.sv-final-table .sv-table{width:100%}.sv-fixed-chart .sv-widgetbody{min-height:380px}
 .sv-foot{text-align:center;color:#8995a3;font-size:10px;padding:22px}.sv-hidden{display:none!important}
@@ -1599,7 +1606,7 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
     <section class="sv-pane" id="svPaneData">
       <div class="sv-head">
         <div><div class="sv-eyebrow">Etapa 2</div><h1>Base consolidada</h1><p>Uma linha por valor da coluna-motor. Colunas equivalentes aparecem uma única vez; informações complementares são acrescentadas sem apagar valores divergentes.</p></div>
-        <div class="sv-actions"><button class="sv-btn" id="svCsv">Exportar CSV</button><button class="sv-btn" id="svXlsx">Exportar Excel</button><button class="sv-btn" id="svTableJpeg">Tabela em JPEG</button><button class="sv-btn" id="svGoDash">Criar novo gráfico</button><button class="sv-btn accent" id="svGoFinal">Informações finais →</button></div>
+        <div class="sv-actions"><button class="sv-btn" id="svColTypeBtn">Formato das colunas</button><button class="sv-btn" id="svCsv">Exportar CSV</button><button class="sv-btn" id="svXlsx">Exportar Excel</button><button class="sv-btn" id="svTableJpeg">Tabela em JPEG</button><button class="sv-btn" id="svGoDash">Criar novo gráfico</button><button class="sv-btn accent" id="svGoFinal">Informações finais →</button></div>
       </div>
       <div class="sv-kpis" id="svKpis"></div>
       <div class="sv-card">
@@ -1612,6 +1619,13 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
         <div class="sv-colfilter-actions"><button class="sv-btn sm" id="svColFilterAll">Selecionar todos</button><button class="sv-btn sm" id="svColFilterNone">Limpar</button></div>
         <div class="sv-colfilter-list" id="svColFilterList"></div>
         <div class="sv-colfilter-footer"><button class="sv-btn sm" id="svColFilterCancel">Fechar</button><button class="sv-btn sm primary" id="svColFilterApply">Aplicar</button></div>
+      </div>
+      <div class="sv-modal-overlay sv-hidden" id="svColTypeOverlay">
+        <div class="sv-modal">
+          <div class="sv-modal-head"><h3>Formato das colunas</h3><button class="sv-btn sm" id="svColTypeClose">Fechar</button></div>
+          <p class="sv-muted" style="padding:0 18px 12px">Por padrão o formato de cada coluna (texto, número, data, data e hora ou hora) é detectado automaticamente pelos valores. Troque aqui só se alguma coluna precisar ser forçada — isso muda como ela é exportada e ordenada nos gráficos.</p>
+          <div class="sv-coltype-list" id="svColTypeList"></div>
+        </div>
       </div>
     </section>
 
@@ -1688,7 +1702,7 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
 document.body.classList.add("smart-v2");
 const oldLogo=document.querySelector(".sese-logo"); if(oldLogo) document.getElementById("svLogo").src=oldLogo.src;
 
-const S={sources:[],pivotSources:[],clusters:[],keyClusterId:null,keyMap:{},consolidated:[],columns:[],columnFilters:{},conflicts:0,missingKeys:0,page:1,search:"",widgets:[],final:{activeGates:new Set(),initialized:false,cache:null}};
+const S={sources:[],pivotSources:[],clusters:[],keyClusterId:null,keyMap:{},consolidated:[],columns:[],columnFilters:{},columnTypeOverrides:{},conflicts:0,missingKeys:0,page:1,search:"",widgets:[],final:{activeGates:new Set(),initialized:false,cache:null}};
 const PAGE=80, COLORS=["#1d5c8f","#78a118","#d57b25","#7359ad","#c24b68","#2f8d81","#ad8a1f","#4772b8","#8a5d3a","#79919f"];
 const $=id=>document.getElementById(id);
 function norm(v){return String(v==null?"":v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim()}
@@ -1832,7 +1846,7 @@ function renderMappings(){
   $("svKeyNotice").className="sv-notice"+(missing?" sv-warn":"");$("svKeyNotice").textContent=missing?missing+" aba(s) ainda estão sem coluna-motor. Se consolidar assim, as linhas dessas abas não poderão ser relacionadas e ficarão separadas.":"Mapeamento completo. Valores repetidos da coluna-motor serão unidos em uma única linha.";
   $("svMappings").innerHTML='<div class="sv-muted">Conferência do relacionamento</div>'+S.sources.map(src=>{const m=S.keyMap[src.id]||{},cl=m.confidence>=.65?'ok':m.confidence>=.3?'mid':'low';return '<div class="sv-maprow"><div class="n">'+esc(src.fileName)+' · '+esc(src.sheetName)+'</div><div class="n"><b>'+esc(m.header||"NÃO MAPEADA")+'</b></div><div class="sv-confidence '+cl+'">'+esc(m.method||"")+(m.header&&m.confidence<1?' · '+Math.round(m.confidence*100)+'%':'')+'</div></div>'}).join('');
 }
-function invalidateResult(){S.consolidated=[];S.columns=[];S.columnFilters={};S.widgets=[];S.final={activeGates:new Set(),initialized:false,cache:null};setTab("data",false);setTab("dash",false);setTab("final",false)}
+function invalidateResult(){S.consolidated=[];S.columns=[];S.columnFilters={};S.columnTypeOverrides={};S.widgets=[];S.final={activeGates:new Set(),initialized:false,cache:null};setTab("data",false);setTab("dash",false);setTab("final",false)}
 
 function mergeValue(record,col,value,meta){
   const txt=valueText(value);if(!txt)return;if(isEmpty(record[col])){record[col]=txt;return}
@@ -1855,7 +1869,7 @@ function consolidate(){
   const baseCols=[keyLabel],seen=new Set([keyLabel]);S.clusters.forEach(c=>{if(!mappedKeyClusterIds.has(c.id)&&!seen.has(c.label)){seen.add(c.label);baseCols.push(c.label)}});
   const rows=Array.from(data.values()).map(x=>{x.row["ARQUIVOS DE ORIGEM"]=Array.from(x.meta.sources).join(" | ");x.row["REGISTROS UNIFICADOS"]=x.meta.rows;if(x.meta.conflicts.size)x.row["DIVERGÊNCIAS"]=Array.from(x.meta.conflicts).join(", ");Object.defineProperty(x.row,"_meta",{value:x.meta,enumerable:false});return x.row});
   const anyConflict=rows.some(r=>r.DIVERGÊNCIAS),cols=baseCols.concat(["ARQUIVOS DE ORIGEM","REGISTROS UNIFICADOS"]);if(anyConflict)cols.push("DIVERGÊNCIAS");
-  S.consolidated=rows;S.columns=cols;S.columnFilters={};S.conflicts=rows.filter(r=>r._meta.conflicts.size).length;S.missingKeys=missing;S.page=1;S.search="";$("svSearch").value="";
+  S.consolidated=rows;S.columns=cols;S.columnFilters={};S.columnTypeOverrides={};S.conflicts=rows.filter(r=>r._meta.conflicts.size).length;S.missingKeys=missing;S.page=1;S.search="";$("svSearch").value="";
   setTab("data",true);setTab("dash",true);setTab("final",true);renderData();setupBuilder();setupFinalDashboard();switchPane("data");
   toast(rows.length+" registro(s) consolidados a partir de "+S.sources.reduce((n,s)=>n+s.rows.length,0)+" linhas.");
 }
@@ -1978,7 +1992,7 @@ function parseDateTimeStr(v){const m=String(v==null?'':v).trim().match(DATE_RE);
 /* Classifica cada coluna pelo formato predominante dos seus valores (texto já normalizado por
    valueText): hora, data (com ou sem hora), número ou texto. Usado para exibir dicas na tela e
    para gravar o Excel com o tipo de célula/formato nativo correto por coluna. */
-function detectColumnType(c){
+function detectColumnTypeAuto(c){
   const vals=S.consolidated.map(r=>r[c]).filter(v=>!isEmpty(v)).slice(0,1200);
   if(!vals.length)return {kind:'text'};
   let time=0,dateOnly=0,dateTime=0,num=0,secs=false;
@@ -1994,7 +2008,34 @@ function detectColumnType(c){
   if(num/n>=.7)return {kind:'number'};
   return {kind:'text'};
 }
+/* Aplica o ajuste manual de formato salvo pelo usuário (tela "Formato das colunas"),
+   caindo para a detecção automática quando a coluna está em "Automático" ou nunca foi ajustada. */
+function detectColumnType(c){
+  const auto=detectColumnTypeAuto(c);
+  const ov=S.columnTypeOverrides[c];
+  if(!ov||ov==='auto')return auto;
+  if(ov==='text')return {kind:'text'};
+  if(ov==='number')return {kind:'number'};
+  if(ov==='date')return {kind:'date',hasTime:false,secs:false};
+  if(ov==='datetime')return {kind:'date',hasTime:true,secs:auto.secs};
+  if(ov==='time')return {kind:'time',secs:auto.secs};
+  return auto;
+}
 function columnProfile(c){const vals=S.consolidated.map(r=>r[c]).filter(v=>!isEmpty(v)).slice(0,3000),num=vals.filter(v=>parseNumber(v)!=null).length,date=vals.filter(v=>parseDateSort(v)!=null).length,t=detectColumnType(c);return {numeric:vals.length&&num/vals.length>=.60,date:vals.length&&date/vals.length>=.75,time:t.kind==='time',filled:vals.length}}
+const COLTYPE_LABEL={auto:'Automático',text:'Texto',number:'Número',date:'Data',datetime:'Data e hora',time:'Hora'};
+function autoKindKey(t){return t.kind==='date'?(t.hasTime?'datetime':'date'):t.kind}
+function renderColumnTypeList(){
+  $('svColTypeList').innerHTML=S.columns.map(c=>{
+    const autoKey=autoKindKey(detectColumnTypeAuto(c)),ov=S.columnTypeOverrides[c]||'auto';
+    return '<div class="sv-coltype-row"><div class="sv-coltype-name">'+esc(c)+'<small>detectado automaticamente: '+COLTYPE_LABEL[autoKey]+'</small></div>'
+      +'<select data-coltype="'+esc(c)+'">'+['auto','text','number','date','datetime','time'].map(v=>'<option value="'+v+'"'+(ov===v?' selected':'')+'>'+COLTYPE_LABEL[v]+'</option>').join('')+'</select></div>';
+  }).join('')||'<div class="sv-muted">Nenhuma coluna disponível.</div>';
+  document.querySelectorAll('[data-coltype]').forEach(sel=>sel.onchange=()=>{
+    const c=sel.dataset.coltype;
+    if(sel.value==='auto')delete S.columnTypeOverrides[c];else S.columnTypeOverrides[c]=sel.value;
+    setupBuilder();
+  });
+}
 function setupBuilder(){
   const opts=S.columns.filter(c=>c!=="ARQUIVOS DE ORIGEM"&&c!=="DIVERGÊNCIAS"),numeric=opts.filter(c=>columnProfile(c).numeric&&c!=="REGISTROS UNIFICADOS");
   $('svCategory').innerHTML=opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).date?' · data':columnProfile(c).time?' · hora':'')+'</option>').join('');
@@ -2119,6 +2160,9 @@ const drop=$('svDrop'),inp=$('svFiles');drop.onclick=()=>inp.click();drop.onkeyd
 $('svKeySelect').onchange=()=>{S.keyClusterId=$('svKeySelect').value;autoMapKey();renderImport()};$('svConsolidate').onclick=consolidate;$('svClear').onclick=()=>{if(!confirm('Remover todas as planilhas, a consolidação e o dashboard?'))return;S.sources=[];S.pivotSources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport();switchPane('import')};
 $('svSearch').oninput=e=>{S.search=e.target.value;S.page=1;renderDataRows()};$('svPrev').onclick=()=>{if(S.page>1){S.page--;renderDataRows()}};$('svNext').onclick=()=>{S.page++;renderDataRows()};$('svCsv').onclick=exportCsv;$('svXlsx').onclick=exportXlsx;$('svTableJpeg').onclick=exportTableJpeg;$('svGoDash').onclick=()=>switchPane('dash');$('svGoFinal').onclick=()=>switchPane('final');
 $('svClearColFilters').onclick=()=>{S.columnFilters={};S.page=1;renderDataHead();renderDataRows()};
+$('svColTypeBtn').onclick=()=>{renderColumnTypeList();$('svColTypeOverlay').classList.remove('sv-hidden')};
+$('svColTypeClose').onclick=()=>$('svColTypeOverlay').classList.add('sv-hidden');
+$('svColTypeOverlay').addEventListener('click',e=>{if(e.target.id==='svColTypeOverlay')$('svColTypeOverlay').classList.add('sv-hidden')});
 $('svColFilterSearch').oninput=e=>renderColFilterList(e.target.value);
 $('svColFilterAll').onclick=()=>{if(!colFilterState)return;colFilterState.selected=new Set(colFilterState.entries.map(e=>e[0]));renderColFilterList($('svColFilterSearch').value)};
 $('svColFilterNone').onclick=()=>{if(!colFilterState)return;colFilterState.selected=new Set();renderColFilterList($('svColFilterSearch').value)};
