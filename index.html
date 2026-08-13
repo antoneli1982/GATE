@@ -1537,6 +1537,7 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
 .sv-summary{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:16px}.sv-summary span{font-size:11.5px;color:#69788a}
 .sv-kpis{display:grid;grid-template-columns:repeat(5,minmax(145px,1fr));gap:10px;margin-bottom:14px}.sv-kpi{padding:14px 15px}.sv-kpi label{display:block;color:#7a899a;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.sv-kpi b{display:block;color:#143a5d;font-size:22px;margin-top:4px}.sv-kpi small{display:block;color:#8b98a7;font-size:9.5px;margin-top:2px}
 .sv-toolbar{display:flex;gap:10px;align-items:center;padding:12px;margin-bottom:10px}.sv-toolbar input{flex:1;min-width:180px;border:1px solid #cad4df;border-radius:8px;padding:9px 11px;font:500 11.5px 'Poppins'}.sv-muted{color:#7f8c9c;font-size:10.5px}.sv-tablewrap{overflow:auto;max-height:62vh}.sv-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:10.5px}.sv-table th{position:sticky;top:0;z-index:2;background:#193f63;color:#fff;text-align:left;padding:9px 10px;white-space:nowrap;border-right:1px solid #315574}.sv-table td{padding:8px 10px;border-right:1px solid #e6ebf0;border-bottom:1px solid #e6ebf0;white-space:nowrap;max-width:360px;overflow:hidden;text-overflow:ellipsis;color:#34475b}.sv-table tr:nth-child(even) td{background:#f8fafc}.sv-table td.conflict{background:#fff3df!important;color:#8c5916}.sv-pager{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-top:1px solid #e3e8ee}.sv-pager span{font-size:10.5px;color:#758396}
+.sv-pagesize{display:flex;align-items:center;gap:6px}.sv-pagesize select{border:1px solid #cad4df;border-radius:8px;padding:6px 8px;font:600 10.5px 'Poppins';color:#263a50;background:#fff}
 .sv-th-inner{display:flex;align-items:center;justify-content:space-between;gap:8px}.sv-colfilter-btn{border:none;background:transparent;color:#c7d4e2;cursor:pointer;font-size:10px;line-height:1;padding:3px 4px;border-radius:4px}.sv-colfilter-btn:hover{background:#2b5580;color:#fff}.sv-colfilter-btn.active{background:#a8c936;color:#183149}
 .sv-colfilter-pop{position:fixed;z-index:50;width:250px;max-height:380px;display:flex;flex-direction:column;background:#fff;border:1px solid #cad3de;border-radius:10px;box-shadow:0 10px 30px #1d38521f;overflow:hidden}
 .sv-colfilter-pop input[type=text]{width:100%;border:1px solid #cad4df;border-radius:7px;padding:7px 9px;font:500 11px 'Poppins';margin:10px 10px 6px;width:calc(100% - 20px)}
@@ -1612,7 +1613,7 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
       <div class="sv-card">
         <div class="sv-toolbar"><input type="search" id="svSearch" placeholder="Pesquisar em todas as colunas..."><button class="sv-btn sm sv-hidden" id="svClearColFilters">Limpar filtros de colunas</button><span class="sv-muted" id="svRowCount"></span></div>
         <div class="sv-tablewrap"><table class="sv-table"><thead><tr id="svDataHead"></tr></thead><tbody id="svDataBody"></tbody></table></div>
-        <div class="sv-pager"><span id="svPageInfo"></span><div class="sv-actions"><button class="sv-btn sm" id="svPrev">← Anterior</button><button class="sv-btn sm" id="svNext">Próxima →</button></div></div>
+        <div class="sv-pager"><span id="svPageInfo"></span><div class="sv-actions"><label class="sv-pagesize"><span class="sv-muted">Por página</span><select id="svPageSize"><option value="25">25</option><option value="50">50</option><option value="80" selected>80</option><option value="150">150</option><option value="300">300</option><option value="all">Todos (página única)</option></select></label><button class="sv-btn sm" id="svPrev">← Anterior</button><button class="sv-btn sm" id="svNext">Próxima →</button></div></div>
       </div>
       <div class="sv-colfilter-pop sv-hidden" id="svColFilterPop">
         <input type="text" id="svColFilterSearch" placeholder="Buscar valor...">
@@ -1702,8 +1703,8 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
 document.body.classList.add("smart-v2");
 const oldLogo=document.querySelector(".sese-logo"); if(oldLogo) document.getElementById("svLogo").src=oldLogo.src;
 
-const S={sources:[],pivotSources:[],clusters:[],keyClusterId:null,keyMap:{},consolidated:[],columns:[],columnFilters:{},columnTypeOverrides:{},conflicts:0,missingKeys:0,page:1,search:"",widgets:[],final:{activeGates:new Set(),initialized:false,cache:null}};
-const PAGE=80, COLORS=["#1d5c8f","#78a118","#d57b25","#7359ad","#c24b68","#2f8d81","#ad8a1f","#4772b8","#8a5d3a","#79919f"];
+const S={sources:[],pivotSources:[],clusters:[],keyClusterId:null,keyMap:{},consolidated:[],columns:[],columnFilters:{},columnTypeOverrides:{},conflicts:0,missingKeys:0,page:1,pageSize:80,search:"",widgets:[],final:{activeGates:new Set(),initialized:false,cache:null}};
+const COLORS=["#1d5c8f","#78a118","#d57b25","#7359ad","#c24b68","#2f8d81","#ad8a1f","#4772b8","#8a5d3a","#79919f"];
 const $=id=>document.getElementById(id);
 function norm(v){return String(v==null?"":v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim()}
 function normValue(v){return norm(valueText(v)).replace(/\s+/g," ")}
@@ -1930,9 +1931,13 @@ function renderDataHead(){
   $('svClearColFilters').classList.toggle('sv-hidden',!Object.keys(S.columnFilters).length);
 }
 function renderDataRows(){
-  const rows=filteredRows(),pages=Math.max(1,Math.ceil(rows.length/PAGE));S.page=Math.min(S.page,pages);const start=(S.page-1)*PAGE,part=rows.slice(start,start+PAGE);
+  const rows=filteredRows(),showAll=S.pageSize==='all',size=showAll?Math.max(1,rows.length):S.pageSize;
+  const pages=showAll?1:Math.max(1,Math.ceil(rows.length/size));S.page=Math.min(S.page,pages);
+  const start=(S.page-1)*size,part=showAll?rows:rows.slice(start,start+size);
   $('svDataBody').innerHTML=part.map(r=>'<tr>'+S.columns.map(c=>'<td class="'+(r._meta&&r._meta.conflicts.has(c)?'conflict':'')+'" title="'+esc(r[c]||'')+'">'+esc(r[c]||'')+'</td>').join('')+'</tr>').join('');
-  $('svRowCount').textContent=rows.length+' registro(s)'+((S.search||Object.keys(S.columnFilters).length)?' filtrados':'');$('svPageInfo').textContent='Página '+S.page+' de '+pages;$('svPrev').disabled=S.page<=1;$('svNext').disabled=S.page>=pages;
+  $('svRowCount').textContent=rows.length+' registro(s)'+((S.search||Object.keys(S.columnFilters).length)?' filtrados':'');
+  $('svPageInfo').textContent=showAll?'Mostrando todos os '+rows.length+' registro(s)':'Página '+S.page+' de '+pages;
+  $('svPrev').disabled=showAll||S.page<=1;$('svNext').disabled=showAll||S.page>=pages;
 }
 function exportRows(){return filteredRows()}
 function csvCell(v){const s=String(v==null?'':v).replace(/"/g,'""');return '"'+s+'"'}
@@ -2159,6 +2164,7 @@ function exportTableJpeg(){const rows=filteredRows().slice(0,250),cols=S.columns
 const drop=$('svDrop'),inp=$('svFiles');drop.onclick=()=>inp.click();drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};drop.ondragleave=()=>drop.classList.remove('drag');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');importFiles(e.dataTransfer.files)};inp.onchange=()=>{importFiles(inp.files);inp.value=''};
 $('svKeySelect').onchange=()=>{S.keyClusterId=$('svKeySelect').value;autoMapKey();renderImport()};$('svConsolidate').onclick=consolidate;$('svClear').onclick=()=>{if(!confirm('Remover todas as planilhas, a consolidação e o dashboard?'))return;S.sources=[];S.pivotSources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport();switchPane('import')};
 $('svSearch').oninput=e=>{S.search=e.target.value;S.page=1;renderDataRows()};$('svPrev').onclick=()=>{if(S.page>1){S.page--;renderDataRows()}};$('svNext').onclick=()=>{S.page++;renderDataRows()};$('svCsv').onclick=exportCsv;$('svXlsx').onclick=exportXlsx;$('svTableJpeg').onclick=exportTableJpeg;$('svGoDash').onclick=()=>switchPane('dash');$('svGoFinal').onclick=()=>switchPane('final');
+$('svPageSize').onchange=e=>{const v=e.target.value;S.pageSize=v==='all'?'all':parseInt(v,10);S.page=1;if(v==='all'&&S.consolidated.length>3000)toast('Mostrando todos os '+S.consolidated.length+' registros em uma página só — a rolagem pode ficar mais pesada.');renderDataRows()};
 $('svClearColFilters').onclick=()=>{S.columnFilters={};S.page=1;renderDataHead();renderDataRows()};
 $('svColTypeBtn').onclick=()=>{renderColumnTypeList();$('svColTypeOverlay').classList.remove('sv-hidden')};
 $('svColTypeClose').onclick=()=>$('svColTypeOverlay').classList.add('sv-hidden');
