@@ -1675,7 +1675,7 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
 document.body.classList.add("smart-v2");
 const oldLogo=document.querySelector(".sese-logo"); if(oldLogo) document.getElementById("svLogo").src=oldLogo.src;
 
-const S={sources:[],clusters:[],keyClusterId:null,keyMap:{},consolidated:[],columns:[],conflicts:0,missingKeys:0,page:1,search:"",widgets:[],final:{activeGates:new Set(),initialized:false,cache:null}};
+const S={sources:[],pivotSources:[],clusters:[],keyClusterId:null,keyMap:{},consolidated:[],columns:[],conflicts:0,missingKeys:0,page:1,search:"",widgets:[],final:{activeGates:new Set(),initialized:false,cache:null}};
 const PAGE=80, COLORS=["#1d5c8f","#78a118","#d57b25","#7359ad","#c24b68","#2f8d81","#ad8a1f","#4772b8","#8a5d3a","#79919f"];
 const $=id=>document.getElementById(id);
 function norm(v){return String(v==null?"":v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim()}
@@ -1727,25 +1727,39 @@ function detectHeaderRow(aoa){
     if(score>best.score)best={i,score};
   }return best.i;
 }
+/* Aba tipo resumo/pivô: cabeçalho formado majoritariamente por datas (ex.: uma coluna por dia).
+   Esse formato não é "uma linha por registro", então não deve ser forçado a virar coluna do
+   quadro principal — em vez disso é preservada à parte e devolvida como aba extra no Excel. */
+function headerRowLooksPivotal(raw){
+  const vals=(raw||[]).filter(v=>!isEmpty(v));
+  if(vals.length<3)return false;
+  const dateCount=vals.filter(v=>v instanceof Date).length;
+  return dateCount/vals.length>0.5;
+}
 function sourceFromAOA(fileName,sheetName,aoa){
   const hi=detectHeaderRow(aoa),raw=aoa[hi]||[],last=Math.max(0,...raw.map((v,i)=>isEmpty(v)?0:i));
+  const pivotal=headerRowLooksPivotal(raw);
   const headers=uniqueHeaders(raw.slice(0,last+1));
   const rows=aoa.slice(hi+1).filter(r=>(r||[]).some(v=>!isEmpty(v))).map(r=>{const o={};headers.forEach((h,i)=>o[h]=(r||[])[i]===undefined?null:r[i]);return o});
-  return {id:uid("s"),fileName,sheetName,headers,rows,headerRow:hi+1};
+  const src={id:uid("s"),fileName,sheetName,headers,rows,headerRow:hi+1,pivotal};
+  if(pivotal)src.rawAOA=aoa.slice(hi);
+  return src;
 }
 async function importFiles(files){
-  let added=0,empty=0;
+  let added=0,empty=0,pivot=0;
   for(const file of Array.from(files)){
     try{
       const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true,raw:true});
       for(const sn of wb.SheetNames){
         const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:null,blankrows:false});
-        const src=sourceFromAOA(file.name,sn,aoa);if(!src.rows.length||!src.headers.length){empty++;continue}S.sources.push(src);added++;
+        const src=sourceFromAOA(file.name,sn,aoa);if(!src.rows.length||!src.headers.length){empty++;continue}
+        if(src.pivotal){S.pivotSources.push(src);pivot++}else{S.sources.push(src)}
+        added++;
       }
     }catch(e){console.error(e);toast("Não foi possível ler "+file.name+".",true)}
   }
   rebuildSchema();renderImport();
-  if(added)toast(added+" aba(s) com dados importada(s)."+(empty?" "+empty+" aba(s) vazia(s) ignorada(s).":""));
+  if(added)toast(added+" aba(s) processada(s)."+(pivot?" "+pivot+" identificada(s) como resumo/pivô, mantida(s) à parte e incluída(s) como aba extra no Excel exportado.":"")+(empty?" "+empty+" aba(s) vazia(s) ignorada(s).":""));
 }
 
 function valuesFor(src,h,limit){const out=[];for(const r of src.rows){if(!isEmpty(r[h]))out.push(normValue(r[h]));if(out.length>=(limit||5000))break}return out}
@@ -1780,14 +1794,16 @@ function autoMapKey(){
 }
 function keyCandidates(){return S.clusters.slice().sort((a,b)=>b.stats.score-a.stats.score)}
 function renderImport(){
-  $("svSources").innerHTML=S.sources.map(src=>{const m=S.keyMap[src.id]||{};return '<div class="sv-card sv-source"><div class="sv-source-name">'+esc(src.fileName)+'<small>Aba: '+esc(src.sheetName)+' · cabeçalho na linha '+src.headerRow+'</small></div><div><span class="sv-badge">'+src.rows.length+' linhas</span></div><div><label>Coluna-motor nesta aba</label><select data-keysrc="'+src.id+'"><option value="">— selecione —</option>'+src.headers.map(h=>'<option value="'+esc(h)+'"'+(h===m.header?' selected':'')+'>'+esc(h)+'</option>').join('')+'</select></div><button class="sv-btn sm danger" data-remove="'+src.id+'" title="Remover">✕</button></div>'}).join("");
-  const has=S.sources.length>0;$("svClear").disabled=!has;$("svConsolidate").disabled=!has;$("svKeyBox").classList.toggle("sv-hidden",!has);
-  $("svImportSummary").textContent=has?S.sources.length+" aba(s) · "+S.sources.reduce((n,s)=>n+s.rows.length,0)+" linhas brutas · "+S.clusters.length+" grupos de colunas":"Nenhuma planilha importada.";
-  if(has){
+  $("svSources").innerHTML=S.sources.map(src=>{const m=S.keyMap[src.id]||{};return '<div class="sv-card sv-source"><div class="sv-source-name">'+esc(src.fileName)+'<small>Aba: '+esc(src.sheetName)+' · cabeçalho na linha '+src.headerRow+'</small></div><div><span class="sv-badge">'+src.rows.length+' linhas</span></div><div><label>Coluna-motor nesta aba</label><select data-keysrc="'+src.id+'"><option value="">— selecione —</option>'+src.headers.map(h=>'<option value="'+esc(h)+'"'+(h===m.header?' selected':'')+'>'+esc(h)+'</option>').join('')+'</select></div><button class="sv-btn sm danger" data-remove="'+src.id+'" title="Remover">✕</button></div>'}).join("")
+    +(S.pivotSources.length?'<div class="sv-muted" style="margin:14px 0 6px;font-weight:700">ABAS TIPO RESUMO/PIVÔ · mantidas à parte, não entram no cruzamento de colunas</div>'+S.pivotSources.map(src=>'<div class="sv-card sv-source"><div class="sv-source-name">'+esc(src.fileName)+'<small>Aba: '+esc(src.sheetName)+' · cabeçalho (datas) na linha '+src.headerRow+'</small></div><div><span class="sv-badge">'+src.rows.length+' linhas · resumo/pivô</span></div><div class="sv-muted" style="font-size:12px">Será incluída como aba extra no Excel exportado.</div><button class="sv-btn sm danger" data-removepivot="'+src.id+'" title="Remover">✕</button></div>').join(""):"");
+  const has=S.sources.length>0||S.pivotSources.length>0;$("svClear").disabled=!has;$("svConsolidate").disabled=!S.sources.length;$("svKeyBox").classList.toggle("sv-hidden",!S.sources.length);
+  $("svImportSummary").textContent=has?S.sources.length+" aba(s) · "+S.sources.reduce((n,s)=>n+s.rows.length,0)+" linhas brutas · "+S.clusters.length+" grupos de colunas"+(S.pivotSources.length?" · "+S.pivotSources.length+" aba(s) resumo/pivô à parte":""):"Nenhuma planilha importada.";
+  if(S.sources.length){
     $("svKeySelect").innerHTML=keyCandidates().map((c,i)=>'<option value="'+esc(c.id)+'"'+(c.id===S.keyClusterId?' selected':'')+'>'+esc(c.label)+' · nota '+Math.round(c.stats.score)+(i===0?' · sugerida':'')+'</option>').join('');renderMappings();
   }
   document.querySelectorAll('[data-keysrc]').forEach(el=>el.onchange=()=>{S.keyMap[el.dataset.keysrc]={header:el.value,confidence:el.value?1:0,method:"seleção manual"};renderMappings()});
   document.querySelectorAll('[data-remove]').forEach(el=>el.onclick=()=>{S.sources=S.sources.filter(s=>s.id!==el.dataset.remove);rebuildSchema();renderImport();invalidateResult()});
+  document.querySelectorAll('[data-removepivot]').forEach(el=>el.onclick=()=>{S.pivotSources=S.pivotSources.filter(s=>s.id!==el.dataset.removepivot);renderImport()});
 }
 function renderMappings(){
   const c=selectedCluster();if(!c)return;const missing=S.sources.filter(s=>!(S.keyMap[s.id]||{}).header).length;
@@ -1839,7 +1855,24 @@ function renderDataRows(){
 function exportRows(){return filteredRows()}
 function csvCell(v){const s=String(v==null?'':v).replace(/"/g,'""');return '"'+s+'"'}
 function exportCsv(){const lines=[S.columns.map(csvCell).join(';')];exportRows().forEach(r=>lines.push(S.columns.map(c=>csvCell(r[c])).join(';')));download(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),'planilha_consolidada.csv')}
-function exportXlsx(){const data=exportRows().map(r=>{const o={};S.columns.forEach(c=>o[c]=r[c]||'');return o}),ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Consolidado');XLSX.writeFile(wb,'planilha_consolidada.xlsx')}
+function safeSheetName(name,used){
+  let s=String(name||"Aba").replace(/[\\\/\?\*\[\]:]/g,"_").trim().slice(0,31)||"Aba";
+  let base=s,i=2;
+  while(used.has(s.toUpperCase())){s=(base.slice(0,28)+"_"+i).slice(0,31);i++}
+  used.add(s.toUpperCase());
+  return s;
+}
+function exportXlsx(){
+  const data=exportRows().map(r=>{const o={};S.columns.forEach(c=>o[c]=r[c]||'');return o}),ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();
+  const used=new Set(["CONSOLIDADO"]);
+  XLSX.utils.book_append_sheet(wb,ws,'Consolidado');
+  S.pivotSources.forEach(src=>{
+    const pws=XLSX.utils.aoa_to_sheet(src.rawAOA);
+    XLSX.utils.book_append_sheet(wb,pws,safeSheetName(src.sheetName,used));
+  });
+  XLSX.writeFile(wb,'planilha_consolidada.xlsx');
+  if(S.pivotSources.length)toast(S.pivotSources.length+" aba(s) resumo/pivô incluída(s) como abas extras no arquivo.");
+}
 
 function parseNumber(v){
   if(typeof v==='number'&&isFinite(v))return v;if(isEmpty(v))return null;let s=String(v).trim().replace(/\s/g,'').replace(/R\$/gi,'').replace(/%$/,'');
@@ -1969,7 +2002,7 @@ async function exportAll(){try{const canv=[];for(const w of S.widgets)canv.push(
 function exportTableJpeg(){const rows=filteredRows().slice(0,250),cols=S.columns.slice(0,12),cw=210,rh=31,W=Math.max(900,cols.length*cw),H=72+(rows.length+1)*rh,c=document.createElement('canvas');c.width=W*2;c.height=H*2;const x=c.getContext('2d');x.scale(2,2);x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#173f65';x.font='700 18px Poppins,Arial';x.fillText('Planilha consolidada',14,28);x.font='500 10px Poppins,Arial';x.fillStyle='#6b798a';x.fillText(rows.length+(filteredRows().length>250?' de '+filteredRows().length:'')+' registros · '+cols.length+(S.columns.length>12?' de '+S.columns.length:'')+' colunas',14,45);cols.forEach((h,i)=>{x.fillStyle='#173f65';x.fillRect(i*cw,56,cw,rh);x.fillStyle='#fff';x.font='700 9px Poppins,Arial';x.fillText(h.slice(0,27),i*cw+7,76)});rows.forEach((r,ri)=>cols.forEach((h,ci)=>{x.fillStyle=ri%2?'#f7f9fb':'#fff';x.fillRect(ci*cw,56+(ri+1)*rh,cw,rh);x.strokeStyle='#e1e6ec';x.strokeRect(ci*cw,56+(ri+1)*rh,cw,rh);x.fillStyle='#35485b';x.font='500 9px Poppins,Arial';x.fillText(String(r[h]||'').slice(0,31),ci*cw+7,76+(ri+1)*rh)}));saveCanvas(c,'tabela_consolidada.jpeg');if(filteredRows().length>250||S.columns.length>12)toast('JPEG limitado a 250 linhas e 12 colunas para manter a leitura. O Excel contém a base completa.')}
 
 const drop=$('svDrop'),inp=$('svFiles');drop.onclick=()=>inp.click();drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};drop.ondragleave=()=>drop.classList.remove('drag');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');importFiles(e.dataTransfer.files)};inp.onchange=()=>{importFiles(inp.files);inp.value=''};
-$('svKeySelect').onchange=()=>{S.keyClusterId=$('svKeySelect').value;autoMapKey();renderImport()};$('svConsolidate').onclick=consolidate;$('svClear').onclick=()=>{if(!confirm('Remover todas as planilhas, a consolidação e o dashboard?'))return;S.sources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport();switchPane('import')};
+$('svKeySelect').onchange=()=>{S.keyClusterId=$('svKeySelect').value;autoMapKey();renderImport()};$('svConsolidate').onclick=consolidate;$('svClear').onclick=()=>{if(!confirm('Remover todas as planilhas, a consolidação e o dashboard?'))return;S.sources=[];S.pivotSources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport();switchPane('import')};
 $('svSearch').oninput=e=>{S.search=e.target.value;S.page=1;renderDataRows()};$('svPrev').onclick=()=>{if(S.page>1){S.page--;renderDataRows()}};$('svNext').onclick=()=>{S.page++;renderDataRows()};$('svCsv').onclick=exportCsv;$('svXlsx').onclick=exportXlsx;$('svTableJpeg').onclick=exportTableJpeg;$('svGoDash').onclick=()=>switchPane('dash');$('svGoFinal').onclick=()=>switchPane('final');
 ['svChartType','svAgg','svCategory','svSeries','svValue'].forEach(id=>$(id).onchange=updateBuilder);$('svAddWidget').onclick=addWidget;$('svClearWidgets').onclick=()=>{S.widgets=[];renderWidgets()};$('svExportAll').onclick=exportAll;
 ['svFinalGate','svFinalDate','svFinalSupply','svFinalDuration','svFinalDurationUnit','svFinalEntry','svFinalExit'].forEach(id=>$(id).onchange=()=>{S.final.initialized=false;initializeFinalFilters();renderFinalDashboard()});
@@ -1978,7 +2011,7 @@ $('svFinalReset').onclick=()=>{S.final.initialized=false;initializeFinalFilters(
 
 /* Gancho de teste local: não interfere na operação normal. */
 window.__SMART_TEST__={
-  reset(){S.sources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport()},
+  reset(){S.sources=[];S.pivotSources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport()},
   addAOA(file,sheet,aoa){const src=sourceFromAOA(file,sheet,aoa);S.sources.push(src);rebuildSchema();renderImport();return src.id},
   selectKey(label){const c=S.clusters.find(x=>norm(x.label)===norm(label)||x.id===headerKey(label));if(c){S.keyClusterId=c.id;autoMapKey();renderImport()}return !!c},
   map(sourceId,header){S.keyMap[sourceId]={header,confidence:1,method:'teste'};renderImport()},
