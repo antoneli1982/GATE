@@ -1650,6 +1650,11 @@ body.smart-v2 > header.top, body.smart-v2 > main, body.smart-v2 > footer.foot{di
         <div class="sv-overview-head"><div><h2>Visão geral</h2><p>Indicadores automáticos da coluna escolhida, antes dos gráficos.</p></div><div class="sv-control"><label>Indicadores calculados sobre</label><select id="svOverviewValue"></select></div></div>
         <div class="sv-overview-cards" id="svOverviewCards"></div>
       </div>
+      <div class="sv-card sv-overview">
+        <div class="sv-overview-head"><div><h2>Tabela de resultados e médias</h2><p>Compare os resultados por qualquer categoria da base consolidada.</p></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(620px,100%)"><div class="sv-control"><label>Agrupar resultados por</label><select id="svAverageCategory"></select></div><div class="sv-control"><label>Calcular valores de</label><select id="svAverageValue"></select></div></div></div>
+        <div class="sv-tablewrap"><table class="sv-table" style="width:100%"><thead><tr><th id="svAverageGroupHead">Grupo</th><th>Média</th><th>Soma</th><th>Mínimo</th><th>Máximo</th><th>Valores válidos</th></tr></thead><tbody id="svAverageBody"></tbody></table></div>
+        <div class="sv-summary"><span id="svAverageSummary"></span><button class="sv-btn" id="svAverageCsv">Exportar tabela de médias em CSV</button></div>
+      </div>
       <div class="sv-dashboard-actions"><span class="sv-muted" id="svWidgetCount">Nenhum visual criado.</span><div class="sv-actions"><button class="sv-btn" id="svClearWidgets" disabled>Limpar painel</button><button class="sv-btn accent" id="svExportAll" disabled>Exportar painel em JPEG</button></div></div>
       <div class="sv-widgetgrid" id="svWidgets"><div class="sv-card sv-empty" id="svDashEmpty">Configure o primeiro gráfico ou tabela acima.</div></div>
     </section>
@@ -1948,7 +1953,7 @@ function renderColFilterList(term){
 function renderData(){
   const raw=S.sources.reduce((n,s)=>n+s.rows.length,0),saved=raw-S.consolidated.length;
   $('svKpis').innerHTML=[['Abas importadas',S.sources.length,''],['Linhas de origem',raw,''],['Registros consolidados',S.consolidated.length,''],['Duplicidades unificadas',Math.max(0,saved),''],['Linhas com divergência',S.conflicts,S.missingKeys?S.missingKeys+' sem chave':'']].map(k=>'<div class="sv-card sv-kpi"><label>'+k[0]+'</label><b>'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
-  renderDataHead();renderDataRows();renderOverview();
+  renderDataHead();renderDataRows();renderOverview();renderAverageTable();
 }
 function renderDataHead(){
   $('svDataHead').innerHTML=S.columns.map(c=>'<th><div class="sv-th-inner"><span>'+esc(c)+'</span><button type="button" class="sv-colfilter-btn'+(S.columnFilters[c]?' active':'')+'" data-colfilter="'+esc(c)+'" title="Filtrar coluna">▾</button></div></th>').join('');
@@ -2090,7 +2095,11 @@ function setupBuilder(){
   $('svSeries').innerHTML='<option value="">— sem separação —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
   $('svValue').innerHTML='<option value="">— nenhuma —</option>'+opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+(columnProfile(c).numeric?' · numérica':columnProfile(c).time?' · hora':'')+'</option>').join('');
   const previous=$('svOverviewValue').value;$('svOverviewValue').innerHTML=numeric.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
-  if(numeric[0])$('svValue').value=numeric[0];if(previous&&numeric.includes(previous))$('svOverviewValue').value=previous;updateBuilder();renderOverview();
+  const oldCat=$('svAverageCategory').value,oldVal=$('svAverageValue').value;
+  $('svAverageCategory').innerHTML=opts.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
+  $('svAverageValue').innerHTML=numeric.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
+  if(oldCat&&opts.includes(oldCat))$('svAverageCategory').value=oldCat;if(oldVal&&numeric.includes(oldVal))$('svAverageValue').value=oldVal;
+  if(numeric[0])$('svValue').value=numeric[0];if(previous&&numeric.includes(previous))$('svOverviewValue').value=previous;updateBuilder();renderOverview();renderAverageTable();
 }
 function updateBuilder(){const agg=$('svAgg').value,need=!['count'].includes(agg);$('svValueHint').textContent=need?'Selecione a coluna que será calculada.':'Na contagem simples, a coluna de valor é opcional.';$('svBuilderHint').textContent=$('svChartType').value==='pie'?'Gráfico de pizza limitado às 12 maiores categorias.':'Categorias muito numerosas serão limitadas às 30 mais relevantes.'}
 function defaultTitle(cfg){const names={count:'Contagem',distinct:'Contagem distinta',sum:'Soma',avg:'Média',min:'Mínimo',max:'Máximo'};return names[cfg.agg]+(cfg.value?' de '+cfg.value:'')+' por '+cfg.category+(cfg.series?' e '+cfg.series:'')}
@@ -2107,6 +2116,24 @@ function renderOverview(){
   const vals=filteredRows().map(r=>parseNumber(r[c])).filter(v=>v!=null),sum=vals.reduce((a,b)=>a+b,0),avg=vals.length?sum/vals.length:0;
   const cards=[['Média',avg],['Soma',sum],['Mínimo',vals.length?Math.min(...vals):0],['Máximo',vals.length?Math.max(...vals):0],['Valores válidos',vals.length]];
   box.innerHTML=cards.map((k,i)=>'<div class="sv-overview-card"><label>'+k[0]+'</label><b>'+(i===4?k[1].toLocaleString('pt-BR'):fmtMetric(c,k[1]))+'</b><span class="sv-type-tag">'+esc(COLTYPE_LABEL[S.columnTypeOverrides[c]||autoKindKey(detectColumnTypeAuto(c))])+'</span></div>').join('');
+}
+function averageTableData(){
+  const cat=$('svAverageCategory').value,val=$('svAverageValue').value,groups=new Map();
+  if(!cat||!val)return {cat,val,rows:[]};
+  filteredRows().forEach(r=>{const k=valueText(r[cat])||'(VAZIO)',n=parseNumber(r[val]);if(n==null)return;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(n)});
+  const rows=Array.from(groups,([group,vals])=>{const sum=vals.reduce((a,b)=>a+b,0);return {group,avg:sum/vals.length,sum,min:Math.min(...vals),max:Math.max(...vals),count:vals.length}}).sort((a,b)=>b.avg-a.avg||a.group.localeCompare(b.group,'pt-BR',{numeric:true}));
+  return {cat,val,rows};
+}
+function renderAverageTable(){
+  const d=averageTableData();if(!$('svAverageBody'))return;$('svAverageGroupHead').textContent=d.cat||'Grupo';
+  $('svAverageBody').innerHTML=d.rows.map(r=>'<tr><td>'+esc(r.group)+'</td><td><b>'+fmtMetric(d.val,r.avg)+'</b></td><td>'+fmtMetric(d.val,r.sum)+'</td><td>'+fmtMetric(d.val,r.min)+'</td><td>'+fmtMetric(d.val,r.max)+'</td><td>'+r.count.toLocaleString('pt-BR')+'</td></tr>').join('')||'<tr><td colspan="6">Nenhum resultado numérico disponível para essa combinação.</td></tr>';
+  $('svAverageSummary').textContent=d.rows.length+' grupo(s) calculado(s) sobre '+filteredRows().length+' registro(s) filtrado(s).';
+}
+function exportAverageCsv(){
+  const d=averageTableData();if(!d.rows.length){toast('A tabela de médias ainda não possui resultados.',true);return}
+  const lines=[[d.cat,'MÉDIA','SOMA','MÍNIMO','MÁXIMO','VALORES VÁLIDOS'].map(csvCell).join(';')];
+  d.rows.forEach(r=>lines.push([r.group,r.avg,r.sum,r.min,r.max,r.count].map(csvCell).join(';')));
+  download(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),'tabela_resultados_medias.csv');
 }
 function svgNode(tag,attrs,text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.keys(attrs||{}).forEach(k=>e.setAttribute(k,attrs[k]));if(text!=null)e.textContent=text;return e}
 function chartSvg(widget,agg){
@@ -2215,9 +2242,9 @@ function exportTableJpeg(){const rows=filteredRows().slice(0,250),cols=S.columns
 
 const drop=$('svDrop'),inp=$('svFiles');drop.onclick=()=>inp.click();drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};drop.ondragleave=()=>drop.classList.remove('drag');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');importFiles(e.dataTransfer.files)};inp.onchange=()=>{importFiles(inp.files);inp.value=''};
 $('svKeySelect').onchange=()=>{S.keyClusterId=$('svKeySelect').value;autoMapKey();renderImport()};$('svConsolidate').onclick=consolidate;$('svClear').onclick=()=>{if(!confirm('Remover todas as planilhas, a consolidação e o dashboard?'))return;S.sources=[];S.pivotSources=[];S.clusters=[];S.keyMap={};invalidateResult();renderImport();switchPane('import')};
-$('svSearch').oninput=e=>{S.search=e.target.value;S.page=1;renderDataRows();renderOverview()};$('svPrev').onclick=()=>{if(S.page>1){S.page--;renderDataRows()}};$('svNext').onclick=()=>{S.page++;renderDataRows()};$('svCsv').onclick=exportCsv;$('svXlsx').onclick=exportXlsx;$('svTableJpeg').onclick=exportTableJpeg;$('svGoDash').onclick=()=>switchPane('dash');$('svGoFinal').onclick=()=>switchPane('final');
+$('svSearch').oninput=e=>{S.search=e.target.value;S.page=1;renderDataRows();renderOverview();renderAverageTable()};$('svPrev').onclick=()=>{if(S.page>1){S.page--;renderDataRows()}};$('svNext').onclick=()=>{S.page++;renderDataRows()};$('svCsv').onclick=exportCsv;$('svXlsx').onclick=exportXlsx;$('svTableJpeg').onclick=exportTableJpeg;$('svGoDash').onclick=()=>switchPane('dash');$('svGoFinal').onclick=()=>switchPane('final');
 $('svPageSize').onchange=e=>{const v=e.target.value;S.pageSize=v==='all'?'all':parseInt(v,10);S.page=1;if(v==='all'&&S.consolidated.length>3000)toast('Mostrando todos os '+S.consolidated.length+' registros em uma página só — a rolagem pode ficar mais pesada.');renderDataRows()};
-$('svClearColFilters').onclick=()=>{S.columnFilters={};S.page=1;renderDataHead();renderDataRows();renderOverview()};
+$('svClearColFilters').onclick=()=>{S.columnFilters={};S.page=1;renderDataHead();renderDataRows();renderOverview();renderAverageTable()};
 $('svColTypeBtn').onclick=()=>{renderColumnTypeList();$('svColTypeOverlay').classList.remove('sv-hidden')};
 $('svColTypeClose').onclick=()=>$('svColTypeOverlay').classList.add('sv-hidden');
 $('svColTypeOverlay').addEventListener('click',e=>{if(e.target.id==='svColTypeOverlay')$('svColTypeOverlay').classList.add('sv-hidden')});
@@ -2225,10 +2252,11 @@ $('svColFilterSearch').oninput=e=>renderColFilterList(e.target.value);
 $('svColFilterAll').onclick=()=>{if(!colFilterState)return;colFilterState.selected=new Set(colFilterState.entries.map(e=>e[0]));renderColFilterList($('svColFilterSearch').value)};
 $('svColFilterNone').onclick=()=>{if(!colFilterState)return;colFilterState.selected=new Set();renderColFilterList($('svColFilterSearch').value)};
 $('svColFilterCancel').onclick=closeColumnFilter;
-$('svColFilterApply').onclick=()=>{if(!colFilterState)return;const{col,entries,selected}=colFilterState;if(selected.size>=entries.length)delete S.columnFilters[col];else S.columnFilters[col]=selected;closeColumnFilter();S.page=1;renderDataHead();renderDataRows();renderOverview()};
+$('svColFilterApply').onclick=()=>{if(!colFilterState)return;const{col,entries,selected}=colFilterState;if(selected.size>=entries.length)delete S.columnFilters[col];else S.columnFilters[col]=selected;closeColumnFilter();S.page=1;renderDataHead();renderDataRows();renderOverview();renderAverageTable()};
 document.addEventListener('click',e=>{const pop=$('svColFilterPop');if(!pop.classList.contains('sv-hidden')&&!pop.contains(e.target)&&!e.target.closest('[data-colfilter]'))closeColumnFilter()});
 ['svChartType','svAgg','svCategory','svSeries','svValue'].forEach(id=>$(id).onchange=updateBuilder);$('svAddWidget').onclick=addWidget;$('svClearWidgets').onclick=()=>{S.widgets=[];renderWidgets()};$('svExportAll').onclick=exportAll;
 $('svOverviewValue').onchange=renderOverview;
+$('svAverageCategory').onchange=renderAverageTable;$('svAverageValue').onchange=renderAverageTable;$('svAverageCsv').onclick=exportAverageCsv;
 ['svFinalGate','svFinalDate','svFinalSupply','svFinalDuration','svFinalDurationUnit','svFinalEntry','svFinalExit'].forEach(id=>$(id).onchange=()=>{S.final.initialized=false;initializeFinalFilters();renderFinalDashboard()});
 $('svFinalTimeMode').onchange=()=>{toggleFinalTimeMode();S.final.initialized=false;initializeFinalFilters();renderFinalDashboard()};$('svFinalStart').onchange=renderFinalDashboard;$('svFinalEnd').onchange=renderFinalDashboard;
 $('svFinalReset').onclick=()=>{S.final.initialized=false;initializeFinalFilters();renderFinalDashboard()};$('svExportFinalTime').onclick=()=>exportFinalChart('time');$('svExportFinalQty').onclick=()=>exportFinalChart('qty');$('svExportFinalAll').onclick=exportFinalAll;
